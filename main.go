@@ -2,11 +2,10 @@ package main
 
 import (
 	"context"
-	"errors"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
+	"tmux-session-launcher/internal/launcher"
 	"tmux-session-launcher/pkg/logger"
 
 	"github.com/urfave/cli/v3"
@@ -34,16 +33,16 @@ func main() {
 			{
 				Name: "launch",
 				Action: WithSignalHandling(func(ctx context.Context, c *cli.Command) error {
-					logger.Info("Press Ctrl+C to exit")
-					time.Sleep(1 * time.Second)
-					return errors.New("not implemented")
+					// logger.Info("Press Ctrl+C to exit")
+					// time.Sleep(1 * time.Second)
+					// return errors.New("not implemented")
 
-					// // 1. start the socket
-					// // 2. wait for input
-					// // 3. reply if requested
-					// l := launcher.New("/tmp/tmux-session-launcher.sock")
-					// err := l.StartSocket(ctx)
-					// return err
+					// 1. start the socket
+					// 2. wait for input
+					// 3. reply if requested
+					l := launcher.New("/tmp/tmux-session-launcher.sock")
+					err := l.StartSocket(ctx)
+					return err
 				}),
 			},
 			{

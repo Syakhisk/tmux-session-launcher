@@ -30,8 +30,9 @@ func main() {
 			{
 				Name: "launch",
 				Action: func(ctx context.Context, c *cli.Command) error {
-					// 1. prepare file store
-					// 2. spawn fzf
+					// 1. start the socket
+					// 2. wait for input
+					// 3. reply if requested
 					return nil
 				},
 			},
@@ -43,9 +44,9 @@ func main() {
 						Name:    "next-mode",
 						Aliases: []string{"next"},
 						Action: func(ctx context.Context, c *cli.Command) error {
-							// 1. get current mode from store
-							// 2. call fzf to update content
-							// 3. set next mode to store
+							// 1. get current mode from socket
+							// 2. get next mode from config
+							// 3. set next mode to socket
 							return nil
 						},
 					},

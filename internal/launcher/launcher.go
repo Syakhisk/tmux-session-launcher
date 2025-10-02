@@ -43,49 +43,32 @@ func (l *Launcher) StartSocket(ctx context.Context) error {
 		os.Remove(l.sockPath)
 	}()
 
-	done := make(chan struct{})
-	go func() {
-		defer close(done)
+	logger.Info("Socket listener started, waiting for connections...")
 
-		connCh := make(chan net.Conn)
-		errCh := make(chan error)
+	// Main loop to accept connections
+	for {
+		select {
+		case <-ctx.Done():
+			logger.Info("Context canceled, stopping main loop")
+			return ctx.Err()
+		default:
+		}
 
-		// Main loop to accept connections
-		for {
-			logger.Info("Socket listener started, waiting for connections...")
-
-			// Accept connections in a separate goroutine to allow for context cancellation
-			go func() {
-				conn, err := listener.Accept()
-				if err != nil {
-					errCh <- err
-					return
-				}
-
-				connCh <- conn
-			}()
-
-			// Wait for either a new connection, an error, or context cancellation
+		conn, err := listener.Accept()
+		if err != nil {
 			select {
-			case conn := <-connCh:
-				logger.Infof("Accepted connection from %s", conn.RemoteAddr())
-				return
-			case err := <-errCh:
-				logger.Errorf("Failed to accept connection: %v", err)
-				return
 			case <-ctx.Done():
-				logger.Info("Context canceled, stopping listener")
-				return
+				logger.Info("Context canceled, stopping accept loop")
+				return ctx.Err()
+			default:
+				logger.Errorf("Failed to accept connection: %v", err)
+				continue
 			}
 		}
-	}()
 
-	select {
-	case <-done:
-		logger.Info("Shutting down socket listener")
-	case <-ctx.Done():
-		logger.Info("Context canceled, shutting down socket listener")
+		logger.Infof("Accepted connection from %s", conn.RemoteAddr())
+
+		// // Handle each connection in its own goroutine
+		// go l.handleConnection(ctx, conn)
 	}
-
-	return nil
 }

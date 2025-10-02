@@ -1,0 +1,3 @@
+❯ go run ./iobenchmark
+Socket round-trips: 42.773042ms for 10000 ops (avg 4.277µs)
+File writes+reads: 1.204009833s for 10000 ops (avg 120.4µs)

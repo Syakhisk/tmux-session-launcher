@@ -27,8 +27,31 @@ func main() {
 		},
 
 		Commands: []*cli.Command{
-			{Name: "launch"},
-			{Name: "cmd"},
+			{
+				Name: "launch",
+				Action: func(ctx context.Context, c *cli.Command) error {
+					// 1. prepare file store
+					// 2. spawn fzf
+					return nil
+				},
+			},
+			{
+				Name:    "action",
+				Aliases: []string{"act", "do"},
+				Commands: []*cli.Command{
+					{
+						Name:    "next-mode",
+						Aliases: []string{"next"},
+						Action: func(ctx context.Context, c *cli.Command) error {
+							// 1. get current mode from store
+							// 2. call fzf to update content
+							// 3. set next mode to store
+							return nil
+						},
+					},
+					{Name: "previous-mode", Aliases: []string{"previous", "prev"}},
+				},
+			},
 		},
 
 		DefaultCommand: "launch",

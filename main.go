@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+	"errors"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 	"tmux-session-launcher/internal/launcher"
 	"tmux-session-launcher/pkg/logger"
 
@@ -41,7 +43,8 @@ func main() {
 					// 2. wait for input
 					// 3. reply if requested
 					l := launcher.New("/tmp/tmux-session-launcher.sock")
-					err := l.StartSocket(ctx)
+					// err := l.StartSocket(ctx)
+					err := l.StartSocketServer(ctx)
 					return err
 				}),
 			},
@@ -53,14 +56,35 @@ func main() {
 						Name:    "next-mode",
 						Aliases: []string{"next"},
 						Action: func(ctx context.Context, c *cli.Command) error {
+							l := launcher.New("/tmp/tmux-session-launcher.sock")
+							_, err := l.SendRequest(ctx, "GEMING")
+							return err
 							// 1. get current mode from socket
 							// 2. get next mode from config
 							// 3. set next mode to socket
-							return nil
+							// return nil
 						},
 					},
 					{Name: "previous-mode", Aliases: []string{"previous", "prev"}},
 				},
+			},
+			{
+				Name: "dummy",
+				Before: func(ctx context.Context, _ *cli.Command) (context.Context, error) {
+					logger.Info("this is a before hook")
+					return ctx, nil
+				},
+				Action: func(ctx context.Context, _ *cli.Command) error {
+					time.Sleep(2 * time.Second)
+					return errors.New("dummy command error")
+				},
+				After: func(ctx context.Context, _ *cli.Command) error {
+					logger.Info("this is an after hook")
+					return nil
+				},
+				// ExitErrHandler: func(ctx context.Context, _ *cli.Command, err error) {
+				// 	logger.Infof("this is an exit error handler: %v", err)
+				// },
 			},
 		},
 

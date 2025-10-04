@@ -29,52 +29,6 @@ func New(sockPath string) *Launcher {
 	}
 }
 
-func (l *Launcher) StartSocket(ctx context.Context) error {
-	logger.Infof("Starting socket listener at %s", l.sockPath)
-
-	// create the socket listener
-	_ = os.Remove(l.sockPath)
-	var lst net.ListenConfig
-	listener, err := lst.Listen(ctx, "unix", l.sockPath)
-	if err != nil {
-		return err
-	}
-
-	defer func() {
-		listener.Close()
-		os.Remove(l.sockPath)
-	}()
-
-	logger.Info("Socket listener started, waiting for connections...")
-
-	// Main loop to accept connections
-	for {
-		select {
-		case <-ctx.Done():
-			logger.Info("Context canceled, stopping main loop")
-			return ctx.Err()
-		default:
-		}
-
-		conn, err := listener.Accept()
-		if err != nil {
-			select {
-			case <-ctx.Done():
-				logger.Info("Context canceled, stopping accept loop")
-				return ctx.Err()
-			default:
-				logger.Errorf("Failed to accept connection: %v", err)
-				continue
-			}
-		}
-
-		logger.Infof("Accepted connection from %s", conn.RemoteAddr())
-
-		// // Handle each connection in its own goroutine
-		// go l.handleConnection(ctx, conn)
-	}
-}
-
 func (l *Launcher) StartSocketServer(ctx context.Context) error {
 	logger.Infof("Starting socket listener at %s", l.sockPath)
 	var lst net.ListenConfig
@@ -84,25 +38,38 @@ func (l *Launcher) StartSocketServer(ctx context.Context) error {
 	}
 
 	defer func() {
+		logger.Info("Cleaning up socket")
 		listener.Close()
-		os.Remove(l.sockPath)
+		if err := os.Remove(l.sockPath); err != nil {
+			logger.Errorf("Failed to remove socket file: %v", err)
+			return
+		}
+
+		logger.Info("Socket file removed")
 	}()
 
 	logger.Info("Socket listener started, waiting for connections...")
 
+	// Handle context cancellation in a separate goroutine
+	go func() {
+		<-ctx.Done()
+		logger.Info("Context canceled, closing listener")
+		listener.Close()
+	}()
+
 	// Main loop to accept connections
 	for {
-		select {
-		case <-ctx.Done():
-			logger.Info("Context canceled, stopping main loop")
-			return ctx.Err()
-		default:
-		}
-
 		conn, err := listener.Accept()
 		if err != nil {
-			logger.Errorf("Failed to accept connection: %v", err)
-			continue
+			// Check if this is due to context cancellation
+			select {
+			case <-ctx.Done():
+				logger.Info("Listener closed due to context cancellation")
+				return ctx.Err()
+			default:
+				logger.Errorf("Failed to accept connection: %v", err)
+				continue
+			}
 		}
 
 		logger.Infof("Accepted connection from %s", conn.LocalAddr())

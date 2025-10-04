@@ -35,10 +35,6 @@ func main() {
 			{
 				Name: "launch",
 				Action: WithSignalHandling(func(ctx context.Context, c *cli.Command) error {
-					// logger.Info("Press Ctrl+C to exit")
-					// time.Sleep(1 * time.Second)
-					// return errors.New("not implemented")
-
 					// 1. start the socket
 					// 2. wait for input
 					// 3. reply if requested
@@ -96,7 +92,7 @@ func main() {
 	}
 }
 
-// TODO: move to somewhere else
+// WithSignalHandling wraps a CLI action with graceful shutdown signal handling.
 func WithSignalHandling(next cli.ActionFunc) cli.ActionFunc {
 	return func(ctx context.Context, cmd *cli.Command) error {
 		ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
@@ -107,9 +103,18 @@ func WithSignalHandling(next cli.ActionFunc) cli.ActionFunc {
 		select {
 		case <-ctx.Done():
 			logger.Info("shutting down gracefully")
-			return nil
+			// Give the action some time to clean up
+			select {
+			case err := <-errCh:
+				return err
+			case <-time.After(5 * time.Second):
+				logger.Warn("cleanup timeout exceeded")
+				return ctx.Err()
+			}
 		case err := <-errCh:
-			logger.Errorf("action error: %v", err)
+			if err != nil {
+				logger.Errorf("action error: %v", err)
+			}
 			return err
 		}
 	}

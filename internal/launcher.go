@@ -26,6 +26,11 @@ func NewLauncher(server *Server) *Launcher {
 }
 
 func (l *Launcher) Handler(ctx context.Context, cmd *cli.Command) error {
+	err := l.Server.Start(ctx)
+	if err != nil {
+		return err
+	}
+
 	l.Server.RegisterHandler(RouteNextMode, func(ctx context.Context, message string) (string, error) {
 		m := mode.Next()
 		return fmt.Sprintf("current mode: %s", m), nil
@@ -36,10 +41,8 @@ func (l *Launcher) Handler(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Sprintf("current mode: %s", m), nil
 	})
 
-	err := l.Server.Start(ctx)
-	if err != nil {
-		return err
-	}
+
+	<-ctx.Done()
 
 	return nil
 }

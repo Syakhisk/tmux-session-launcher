@@ -37,7 +37,6 @@ func main() {
 			},
 			{
 				Name:    "action",
-				Aliases: []string{"act", "do"},
 				Commands: []*cli.Command{
 					{
 						Name:    "next-mode",

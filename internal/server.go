@@ -18,6 +18,7 @@ type ServerHandlerRoute string
 type Server struct {
 	Address  string
 	handlers map[ServerHandlerRoute]ServerHandlerFunc
+	listener net.Listener
 }
 
 func NewServer(address string) *Server {
@@ -38,7 +39,8 @@ func (s *Server) Start(ctx context.Context) error {
 	logger.Infof("Starting socket listener at %s", s.Address)
 
 	var lstCfg net.ListenConfig
-	listener, err := lstCfg.Listen(ctx, "unix", s.Address)
+	var err error
+	s.listener, err = lstCfg.Listen(ctx, "unix", s.Address)
 	if err != nil {
 		return errors.Wrap(err, "failed to start socket listener")
 	}
@@ -49,25 +51,27 @@ func (s *Server) Start(ctx context.Context) error {
 	go func() {
 		<-ctx.Done()
 		logger.Debugf("Cleanup: context cancelled")
-		listener.Close()
+		s.listener.Close()
 		os.Remove(s.Address)
 	}()
 
 	// Main loop to accept connections
-	for {
-		conn, err := listener.Accept()
-		if err != nil {
-			if util.IsContextDone(ctx) {
-				logger.Debugf("Context closed, exiting main loop")
-				break
+	go func() {
+		for {
+			conn, err := s.listener.Accept()
+			if err != nil {
+				if util.IsContextDone(ctx) {
+					logger.Debugf("Context closed, exiting main loop")
+					break
+				}
+
+				logger.Errorf("Failed to accept connection: %v", err)
+				continue
 			}
 
-			logger.Errorf("Failed to accept connection: %v", err)
-			continue
+			go s.handleConnection(ctx, conn)
 		}
-
-		go s.handleConnection(ctx, conn)
-	}
+	}()
 
 	return nil
 }

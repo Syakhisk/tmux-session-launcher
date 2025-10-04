@@ -7,6 +7,8 @@ import (
 	"os"
 	"time"
 	"tmux-session-launcher/pkg/logger"
+
+	"github.com/urfave/cli/v3"
 )
 
 type Mode string
@@ -28,6 +30,12 @@ func New(sockPath string) *Launcher {
 		sockPath: sockPath,
 	}
 }
+func (l *Launcher) Handler(ctx context.Context, cmd *cli.Command) error {
+	// 1. start the socket
+	// 2. wait for input
+	// 3. reply if requested
+	return l.StartSocketServer(ctx)
+}
 
 func (l *Launcher) StartSocketServer(ctx context.Context) error {
 	logger.Infof("Starting socket listener at %s", l.sockPath)
@@ -39,9 +47,9 @@ func (l *Launcher) StartSocketServer(ctx context.Context) error {
 
 	defer func() {
 		logger.Info("Cleaning up socket")
+
 		listener.Close()
 		if err := os.Remove(l.sockPath); err != nil {
-			logger.Errorf("Failed to remove socket file: %v", err)
 			return
 		}
 
@@ -53,7 +61,6 @@ func (l *Launcher) StartSocketServer(ctx context.Context) error {
 	// Handle context cancellation in a separate goroutine
 	go func() {
 		<-ctx.Done()
-		logger.Info("Context canceled, closing listener")
 		listener.Close()
 	}()
 

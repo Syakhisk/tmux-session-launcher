@@ -17,6 +17,8 @@ func main() {
 	logger.SetupLogger(os.Stderr)
 	logger.SetVerbosity(3)
 
+	lcr := launcher.New("/tmp/tmux-session-launcher.sock")
+
 	cmd := &cli.Command{
 		Name: "tmux-session-launcher",
 		Flags: []cli.Flag{
@@ -33,16 +35,8 @@ func main() {
 
 		Commands: []*cli.Command{
 			{
-				Name: "launch",
-				Action: WithSignalHandling(func(ctx context.Context, c *cli.Command) error {
-					// 1. start the socket
-					// 2. wait for input
-					// 3. reply if requested
-					l := launcher.New("/tmp/tmux-session-launcher.sock")
-					// err := l.StartSocket(ctx)
-					err := l.StartSocketServer(ctx)
-					return err
-				}),
+				Name:   "launch",
+				Action: WithSignalHandling(lcr.Handler),
 			},
 			{
 				Name:    "action",
@@ -52,8 +46,7 @@ func main() {
 						Name:    "next-mode",
 						Aliases: []string{"next"},
 						Action: func(ctx context.Context, c *cli.Command) error {
-							l := launcher.New("/tmp/tmux-session-launcher.sock")
-							_, err := l.SendRequest(ctx, "GEMING")
+							_, err := lcr.SendRequest(ctx, "GEMING")
 							return err
 							// 1. get current mode from socket
 							// 2. get next mode from config

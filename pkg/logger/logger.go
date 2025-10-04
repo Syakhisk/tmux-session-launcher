@@ -2,16 +2,22 @@ package logger
 
 import (
 	"errors"
+	"fmt"
 	"io"
-	"log"
+	"os"
+
+	"github.com/rs/zerolog"
 )
 
 var (
-	logger    *log.Logger
+	logger    zerolog.Logger
 	verbosity int
 )
 
-const ()
+type Logger struct {
+	logger zerolog.Logger
+	prefix string
+}
 
 const (
 	LevelError int = iota
@@ -21,12 +27,15 @@ const (
 )
 
 func init() {
-	// ensure logger is initialized
-	logger = log.New(nil, "", 0)
+	// Setup pretty console logging by default
+	output := zerolog.ConsoleWriter{Out: os.Stderr}
+	logger = zerolog.New(output).With().Timestamp().Logger()
+	verbosity = LevelInfo // Default to info level
 }
 
 func SetupLogger(w io.Writer) {
-	logger = log.New(w, "", 0)
+	output := zerolog.ConsoleWriter{Out: w}
+	logger = zerolog.New(output).With().Timestamp().Logger()
 }
 
 func SetVerbosity(v int) error {
@@ -40,69 +49,157 @@ func SetVerbosity(v int) error {
 		return errors.New("invalid verbosity level: must be <= 3")
 	}
 
+	// Set zerolog level based on verbosity
+	switch verbosity {
+	case LevelError:
+		zerolog.SetGlobalLevel(zerolog.ErrorLevel)
+	case LevelWarn:
+		zerolog.SetGlobalLevel(zerolog.WarnLevel)
+	case LevelInfo:
+		zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	case LevelDebug:
+		zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	}
+
 	return nil
+}
+
+// Helper function to format arguments into a string
+func formatArgs(args ...any) string {
+	if len(args) == 0 {
+		return ""
+	}
+
+	var result string
+	for i, arg := range args {
+		if i > 0 {
+			result += " "
+		}
+		switch v := arg.(type) {
+		case string:
+			result += v
+		default:
+			result += fmt.Sprintf("%v", v)
+		}
+	}
+	return result
+}
+
+// Helper method to prepend prefix to message
+func (l *Logger) prefixMsg(msg string) string {
+	if l.prefix != "" {
+		return fmt.Sprintf("[%s] %s", l.prefix, msg)
+	}
+	return msg
+}
+
+func WithPrefix(p string) *Logger {
+	return &Logger{
+		logger: logger,
+		prefix: p,
+	}
+}
+
+func (l *Logger) Errorf(format string, args ...any) {
+	Errorf(l.prefixMsg(format), args...)
+}
+
+func (l *Logger) Error(args ...any) {
+	Error(l.prefixMsg(formatArgs(args...)))
+}
+
+func (l *Logger) Warnf(format string, args ...any) {
+	Warnf(l.prefixMsg(format), args...)
+}
+
+func (l *Logger) Warn(args ...any) {
+	Warn(l.prefixMsg(formatArgs(args...)))
+}
+
+func (l *Logger) Infof(format string, args ...any) {
+	Infof(l.prefixMsg(format), args...)
+}
+
+func (l *Logger) Info(args ...any) {
+	Info(l.prefixMsg(formatArgs(args...)))
+}
+
+func (l *Logger) Debugf(format string, args ...any) {
+	Debugf(l.prefixMsg(format), args...)
+}
+
+func (l *Logger) Debug(args ...any) {
+	Debug(l.prefixMsg(formatArgs(args...)))
+}
+
+func (l *Logger) Fatalf(format string, args ...any) {
+	Fatalf(l.prefixMsg(format), args...)
+}
+
+func (l *Logger) Fatal(args ...any) {
+	Fatal(l.prefixMsg(formatArgs(args...)))
 }
 
 func Errorf(format string, args ...any) {
 	if verbosity < LevelError {
 		return
 	}
-	logger.Printf("error: "+format, args...)
+	logger.Error().Msgf(format, args...)
 }
 
 func Error(args ...any) {
 	if verbosity < LevelError {
 		return
 	}
-	logger.Print(append([]any{"error: "}, args...)...)
+	logger.Error().Msg(formatArgs(args...))
 }
 
 func Warnf(format string, args ...any) {
 	if verbosity < LevelWarn {
 		return
 	}
-	logger.Printf("warn: "+format, args...)
+	logger.Warn().Msgf(format, args...)
 }
 
 func Warn(args ...any) {
 	if verbosity < LevelWarn {
 		return
 	}
-	logger.Print(append([]any{"warn: "}, args...)...)
+	logger.Warn().Msg(formatArgs(args...))
 }
 
 func Infof(format string, args ...any) {
 	if verbosity < LevelInfo {
 		return
 	}
-	logger.Printf("info: "+format, args...)
+	logger.Info().Msgf(format, args...)
 }
 
 func Info(args ...any) {
 	if verbosity < LevelInfo {
 		return
 	}
-	logger.Print(append([]any{"info: "}, args...)...)
+	logger.Info().Msg(formatArgs(args...))
 }
 
 func Debugf(format string, args ...any) {
 	if verbosity < LevelDebug {
 		return
 	}
-	logger.Printf("debug: "+format, args...)
+	logger.Debug().Msgf(format, args...)
 }
 
 func Debug(args ...any) {
 	if verbosity < LevelDebug {
 		return
 	}
-	logger.Print(append([]any{"debug: "}, args...)...)
+	logger.Debug().Msg(formatArgs(args...))
 }
 
 func Fatalf(format string, args ...any) {
-	logger.Fatalf("fatal: "+format, args...)
+	logger.Fatal().Msgf(format, args...)
 }
 
 func Fatal(args ...any) {
-	logger.Fatal(append([]any{"fatal: "}, args...)...)
+	logger.Fatal().Msg(formatArgs(args...))
 }

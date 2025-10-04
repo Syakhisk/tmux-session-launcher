@@ -2,19 +2,13 @@ package internal
 
 import (
 	"context"
+	"fmt"
+	"tmux-session-launcher/internal/mode"
 
 	"github.com/urfave/cli/v3"
 )
 
-type Mode string
-
-const (
-	ModeAll      Mode = "all"
-	ModeSessions Mode = "sessions"
-	ModeDir      Mode = "dir"
-)
-
-func LauncherHandler(ctx context.Context, cmd *cli.Command) error {
+func HandlerLauncer(ctx context.Context, cmd *cli.Command) error {
 	srv := NewServer(SockAddress)
 	lcr := NewLauncher(srv)
 
@@ -22,8 +16,7 @@ func LauncherHandler(ctx context.Context, cmd *cli.Command) error {
 }
 
 type Launcher struct {
-	Server      *Server
-	currentMode Mode
+	Server *Server
 }
 
 func NewLauncher(server *Server) *Launcher {
@@ -33,24 +26,20 @@ func NewLauncher(server *Server) *Launcher {
 }
 
 func (l *Launcher) Handler(ctx context.Context, cmd *cli.Command) error {
-	l.Server.RegisterHandler("next", func(ctx context.Context, message string) (string, error) {
-		return "next mode", nil
+	l.Server.RegisterHandler(RouteNextMode, func(ctx context.Context, message string) (string, error) {
+		m := mode.Next()
+		return fmt.Sprintf("current mode: %s", m), nil
 	})
 
-	l.Server.RegisterHandler("prev", func(ctx context.Context, message string) (string, error) {
-		return "prev mode", nil
+	l.Server.RegisterHandler(RoutePrevMode, func(ctx context.Context, message string) (string, error) {
+		m := mode.Prev()
+		return fmt.Sprintf("current mode: %s", m), nil
 	})
 
 	err := l.Server.Start(ctx)
 	if err != nil {
 		return err
 	}
-
-	// server.RegisterHandler("/next-mode", l.NextModeHandler)
-
-	// 1. start the socket
-	// 2. wait for input
-	// 3. reply if requested
 
 	return nil
 }

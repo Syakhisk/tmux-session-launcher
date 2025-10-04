@@ -8,14 +8,14 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-func ActionNextModeHandler(ctx context.Context, cmd *cli.Command) error {
+func HandlerActionNextMode(ctx context.Context, cmd *cli.Command) error {
 	client := NewClient(SockAddress)
 	action := NewAction(client)
 
 	return action.NextMode(ctx)
 }
 
-func ActionPrevModeHandler(ctx context.Context, cmd *cli.Command) error {
+func HandlerActionPrevMode(ctx context.Context, cmd *cli.Command) error {
 	client := NewClient(SockAddress)
 	action := NewAction(client)
 
@@ -33,23 +33,23 @@ func NewAction(client *Client) *Action {
 }
 
 func (a *Action) NextMode(ctx context.Context) error {
-	res, err := a.client.Send("next", "")
+	res, err := a.client.Send(RouteNextMode, "")
 	if err != nil {
 		return errors.Wrap(err, "failed to get next mode")
 	}
 
-	logger.Infof("Switched to next mode: %s", res)
+	logger.Infof("Got response: %s", res)
 
 	return nil
 }
 
 func (a *Action) PrevMode(ctx context.Context) error {
-	res, err := a.client.Send("prev", "")
+	res, err := a.client.Send(RoutePrevMode, "")
 	if err != nil {
 		return errors.Wrap(err, "failed to get next mode")
 	}
 
-	logger.Infof("Switched to prev mode: %s", res)
+	logger.Infof("Got response: %s", res)
 
 	return nil
 }

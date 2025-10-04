@@ -33,7 +33,7 @@ func main() {
 		Commands: []*cli.Command{
 			{
 				Name:   "launch",
-				Action: WithSignalHandling(i.LauncherHandler),
+				Action: WithSignalHandling(i.HandlerLauncer),
 			},
 			{
 				Name:    "action",
@@ -42,12 +42,12 @@ func main() {
 					{
 						Name:    "next-mode",
 						Aliases: []string{"next"},
-						Action:  WithSignalHandling(i.ActionNextModeHandler),
+						Action:  WithSignalHandling(i.HandlerActionNextMode),
 					},
 					{
 						Name:    "previous-mode",
 						Aliases: []string{"previous", "prev"},
-						Action:  WithSignalHandling(i.ActionPrevModeHandler),
+						Action:  WithSignalHandling(i.HandlerActionPrevMode),
 					},
 				},
 			},

@@ -70,7 +70,7 @@ func WithSignalHandling(next cli.ActionFunc) cli.ActionFunc {
 
 		select {
 		case <-ctx.Done():
-			logger.Info("shutting down gracefully")
+			logger.Info("received shutdown signal, cleaning up...")
 			// Give the action some time to clean up
 			select {
 			case err := <-errCh:

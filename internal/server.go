@@ -28,7 +28,7 @@ func NewServer(address string) *Server {
 }
 
 func (s *Server) Start(ctx context.Context) error {
-	logger := logger.WithPrefix("launcher.StartSocketServer")
+	logger := logger.WithPrefix("launcher.Start")
 
 	if len(s.handlers) > 0 {
 		logger.Infof("%d handlers registered", len(s.handlers))
@@ -46,14 +46,6 @@ func (s *Server) Start(ctx context.Context) error {
 	}
 
 	logger.Info("Socket listener started, waiting for connections...")
-
-	// cleanup when context is cancelled
-	go func() {
-		<-ctx.Done()
-		logger.Debugf("Cleanup: context cancelled")
-		s.listener.Close()
-		os.Remove(s.Address)
-	}()
 
 	// Main loop to accept connections
 	go func() {
@@ -74,6 +66,21 @@ func (s *Server) Start(ctx context.Context) error {
 	}()
 
 	return nil
+}
+
+func (s *Server) Stop() error {
+	var combErr error
+	if s.listener != nil {
+		err := s.listener.Close()
+		combErr = errors.Combine(err, errors.Wrap(err, "failed to close listener"))
+	}
+
+	if _, err := os.Stat(s.Address); err == nil {
+		err := os.Remove(s.Address)
+		combErr = errors.Combine(err, errors.Wrap(err, "failed to remove socket file"))
+	}
+
+	return combErr
 }
 
 func (s *Server) RegisterHandler(route ServerHandlerRoute, handler ServerHandlerFunc) {

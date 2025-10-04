@@ -31,6 +31,8 @@ func (l *Launcher) Handler(ctx context.Context, cmd *cli.Command) error {
 		return err
 	}
 
+	defer l.Server.Stop()
+
 	l.Server.RegisterHandler(RouteNextMode, func(ctx context.Context, message string) (string, error) {
 		m := mode.Next()
 		return fmt.Sprintf("current mode: %s", m), nil

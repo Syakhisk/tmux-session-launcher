@@ -2,12 +2,11 @@ package main
 
 import (
 	"context"
-	"errors"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
-	"tmux-session-launcher/internal/launcher"
+	i "tmux-session-launcher/internal"
 	"tmux-session-launcher/pkg/logger"
 
 	"github.com/urfave/cli/v3"
@@ -16,8 +15,6 @@ import (
 func main() {
 	logger.SetupLogger(os.Stderr)
 	logger.SetVerbosity(3)
-
-	lcr := launcher.New("/tmp/tmux-session-launcher.sock")
 
 	cmd := &cli.Command{
 		Name: "tmux-session-launcher",
@@ -36,45 +33,45 @@ func main() {
 		Commands: []*cli.Command{
 			{
 				Name:   "launch",
-				Action: WithSignalHandling(lcr.Handler),
+				Action: WithSignalHandling(i.ActionLauncherHandler),
 			},
-			{
-				Name:    "action",
-				Aliases: []string{"act", "do"},
-				Commands: []*cli.Command{
-					{
-						Name:    "next-mode",
-						Aliases: []string{"next"},
-						Action: func(ctx context.Context, c *cli.Command) error {
-							_, err := lcr.SendRequest(ctx, "GEMING")
-							return err
-							// 1. get current mode from socket
-							// 2. get next mode from config
-							// 3. set next mode to socket
-							// return nil
-						},
-					},
-					{Name: "previous-mode", Aliases: []string{"previous", "prev"}},
-				},
-			},
-			{
-				Name: "dummy",
-				Before: func(ctx context.Context, _ *cli.Command) (context.Context, error) {
-					logger.Info("this is a before hook")
-					return ctx, nil
-				},
-				Action: func(ctx context.Context, _ *cli.Command) error {
-					time.Sleep(2 * time.Second)
-					return errors.New("dummy command error")
-				},
-				After: func(ctx context.Context, _ *cli.Command) error {
-					logger.Info("this is an after hook")
-					return nil
-				},
-				// ExitErrHandler: func(ctx context.Context, _ *cli.Command, err error) {
-				// 	logger.Infof("this is an exit error handler: %v", err)
-				// },
-			},
+			// {
+			// 	Name:    "action",
+			// 	Aliases: []string{"act", "do"},
+			// 	Commands: []*cli.Command{
+			// 		{
+			// 			Name:    "next-mode",
+			// 			Aliases: []string{"next"},
+			// 			Action: func(ctx context.Context, c *cli.Command) error {
+			// 				_, err := lcr.SendRequest(ctx, "GEMING")
+			// 				return err
+			// 				// 1. get current mode from socket
+			// 				// 2. get next mode from config
+			// 				// 3. set next mode to socket
+			// 				// return nil
+			// 			},
+			// 		},
+			// 		{Name: "previous-mode", Aliases: []string{"previous", "prev"}},
+			// 	},
+			// },
+			// {
+			// 	Name: "dummy",
+			// 	Before: func(ctx context.Context, _ *cli.Command) (context.Context, error) {
+			// 		logger.Info("this is a before hook")
+			// 		return ctx, nil
+			// 	},
+			// 	Action: func(ctx context.Context, _ *cli.Command) error {
+			// 		time.Sleep(2 * time.Second)
+			// 		return errors.New("dummy command error")
+			// 	},
+			// 	After: func(ctx context.Context, _ *cli.Command) error {
+			// 		logger.Info("this is an after hook")
+			// 		return nil
+			// 	},
+			// 	// ExitErrHandler: func(ctx context.Context, _ *cli.Command, err error) {
+			// 	// 	logger.Infof("this is an exit error handler: %v", err)
+			// 	// },
+			// },
 		},
 
 		DefaultCommand: "launch",

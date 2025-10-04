@@ -1,4 +1,4 @@
-package action
+package internal
 
 import (
 	"io"
@@ -8,7 +8,7 @@ import (
 type Action struct {
 }
 
-func New() *Action {
+func NewAction() *Action {
 	return &Action{}
 }
 

@@ -52,8 +52,8 @@ func (s *Server) Start(ctx context.Context) error {
 		for {
 			conn, err := s.listener.Accept()
 			if err != nil {
-				if util.IsContextDone(ctx) {
-					logger.Debugf("Context closed, exiting main loop")
+				if errors.Is(err, net.ErrClosed) {
+					logger.Debugf("Stopping accept loop")
 					break
 				}
 

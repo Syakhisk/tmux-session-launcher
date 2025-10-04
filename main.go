@@ -36,7 +36,7 @@ func main() {
 				Action: WithSignalHandling(i.HandlerLauncer),
 			},
 			{
-				Name:    "action",
+				Name: "action",
 				Commands: []*cli.Command{
 					{
 						Name:    "next-mode",

@@ -3,6 +3,7 @@ package internal
 import (
 	"context"
 	"fmt"
+	"tmux-session-launcher/internal/fuzzyfinder"
 	"tmux-session-launcher/internal/mode"
 
 	"github.com/urfave/cli/v3"
@@ -31,8 +32,19 @@ func (l *Launcher) Handler(ctx context.Context, cmd *cli.Command) error {
 		return err
 	}
 
+	l.registerHandlers()
+
 	defer l.Server.Stop()
 
+	err = fuzzyfinder.Exec(ctx)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (l *Launcher) registerHandlers() {
 	l.Server.RegisterHandler(RouteNextMode, func(ctx context.Context, message string) (string, error) {
 		m := mode.Next()
 		return fmt.Sprintf("current mode: %s", m), nil
@@ -42,9 +54,4 @@ func (l *Launcher) Handler(ctx context.Context, cmd *cli.Command) error {
 		m := mode.Prev()
 		return fmt.Sprintf("current mode: %s", m), nil
 	})
-
-
-	<-ctx.Done()
-
-	return nil
 }

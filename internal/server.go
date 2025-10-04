@@ -30,12 +30,6 @@ func NewServer(address string) *Server {
 func (s *Server) Start(ctx context.Context) error {
 	logger := logger.WithPrefix("launcher.Start")
 
-	if len(s.handlers) > 0 {
-		logger.Infof("%d handlers registered", len(s.handlers))
-	} else {
-		logger.Warn("no handlers registered, server will not respond to any requests")
-	}
-
 	logger.Infof("Starting socket listener at %s", s.Address)
 
 	var lstCfg net.ListenConfig

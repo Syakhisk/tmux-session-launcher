@@ -5,9 +5,7 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strings"
 	"tmux-session-launcher/internal/fzf"
-	"tmux-session-launcher/internal/mode"
 	"tmux-session-launcher/internal/tmux"
 	"tmux-session-launcher/pkg/logger"
 
@@ -39,9 +37,6 @@ var (
 func Run(ctx context.Context) error {
 	logger := logger.WithPrefix("fuzzyfinder.Exec")
 
-	// fmt.Sprintf("--bind=%s:execute-silent(%s --action mode-next)+reload(%s --static content)+transform-header(%s --static header)", keyModeNext, originalCmd.Name, originalCmd.Name, originalCmd.Name),
-	// fmt.Sprintf("--bind=%s:execute-silent(%s --action mode-next)+reload(%s --static content)+transform-header(%s --static header)", keyModePrev, originalCmd.Name, originalCmd.Name, originalCmd.Name),
-
 	execPath, err := os.Executable()
 	if err != nil {
 		return errors.WrapIf(err, "failed to get executable path")
@@ -61,7 +56,7 @@ func Run(ctx context.Context) error {
 		fmt.Sprintf("--bind=%s:execute-silent(%s action mode-previous)", keyModePrev, execPath),
 	}
 
-	input, err := buildInput(ctx)
+	input, err := buildContent(ctx)
 	if err != nil {
 		return errors.WrapIf(err, "failed to build fzf input")
 	}
@@ -72,7 +67,7 @@ func Run(ctx context.Context) error {
 	if err := fzf.Select(
 		ctx,
 		args,
-		bytes.NewReader(input),
+		bytes.NewReader([]byte(input)),
 		outputBuf,
 		errBuf,
 	); err != nil {
@@ -109,23 +104,21 @@ func Run(ctx context.Context) error {
 	return nil
 }
 
-func buildHeader() string {
-	header := color.New(color.Faint).Sprintf("Press %s/%s to switch mode\n", keyModeNext, keyModePrev)
+func UpdateContentAndHeader(ctx context.Context) error {
+	header := buildHeader()
 
-	c := color.New(color.Faint, color.Bold, color.Italic)
-
-	mSlc := make([]string, 0, len(mode.Modes))
-	currentMode := mode.Get()
-	for _, m := range mode.Modes {
-		if m == currentMode {
-			mSlc = append(mSlc, colorCurrentSession(fmt.Sprintf("[%s]", m)))
-			continue
-		}
-
-		mSlc = append(mSlc, c.Sprint(m))
+	content, err := buildContent(ctx)
+	if err != nil {
+		return errors.WrapIf(err, "failed to build fzf input")
 	}
 
-	header += strings.Join(mSlc, " ")
+	// logger.Debug("Updating fzf content and header")
+	// logger.Debugf("New header: %s", header)
+	// logger.Debugf("New content: \n%s", content)
 
-	return header
+	if err := fzf.UpdateContentAndHeader(ctx, fzfPort, header, content); err != nil {
+		return errors.WrapIf(err, "failed to update fzf content and header")
+	}
+
+	return nil
 }

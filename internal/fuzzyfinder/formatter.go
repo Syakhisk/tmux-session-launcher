@@ -5,27 +5,61 @@ import (
 	"fmt"
 	"strings"
 	"tmux-session-launcher/internal/dirs"
+	"tmux-session-launcher/internal/mode"
 	"tmux-session-launcher/internal/tmux"
 	"tmux-session-launcher/pkg/logger"
 	"unicode/utf8"
 
 	"github.com/acarl005/stripansi"
+	"github.com/fatih/color"
 	"github.com/rodaine/table"
 )
 
-func buildInput(ctx context.Context) ([]byte, error) {
-	sessions, err := tmux.GetSessions(ctx)
-	if err != nil {
-		logger.Warnf("Failed to get tmux sessions: %v", err)
+func buildHeader() string {
+	c := color.New(color.Faint, color.Bold, color.Italic)
+
+	header := color.New(color.Faint).Sprintf("Press %s/%s to switch mode\n", keyModeNext, keyModePrev)
+
+	currentMode := mode.Get()
+
+	mSlc := make([]string, 0, len(mode.Modes))
+	for _, m := range mode.Modes {
+		if m == currentMode {
+			mSlc = append(mSlc, colorCurrentSession(fmt.Sprintf("[%s]", m)))
+			continue
+		}
+
+		mSlc = append(mSlc, c.Sprint(m))
 	}
 
-	dirs := dirs.GetDirectories()
+	header += strings.Join(mSlc, " ")
 
-	formattedSessions := formatEntryTmuxSessionsAsRows(sessions, fzfSeparator)
-	formattedDirs := formatEntryDirectoryAsRows(dirs, fzfSeparator)
+	return header
+}
 
-	output := formatTable(append(formattedSessions, formattedDirs...))
-	return []byte(output), nil
+func buildContent(ctx context.Context) (string, error) {
+	currentMode := mode.Get()
+
+	output := make([][]string, 0)
+
+	if currentMode == mode.ModeSession || currentMode == mode.ModeAll {
+		sessions, err := tmux.GetSessions(ctx)
+		if err != nil {
+			logger.Warnf("Failed to get tmux sessions: %v", err)
+		}
+
+		formattedSessions := formatEntryTmuxSessionsAsRows(sessions, fzfSeparator)
+		output = append(output, formattedSessions...)
+	}
+
+	if currentMode == mode.ModeDirectory || currentMode == mode.ModeAll {
+		dirs := dirs.GetDirectories()
+
+		formattedDirs := formatEntryDirectoryAsRows(dirs, fzfSeparator)
+		output = append(output, formattedDirs...)
+	}
+
+	return formatTable(output), nil
 }
 
 func formatTable(rows [][]string) string {

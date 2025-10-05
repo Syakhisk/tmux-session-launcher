@@ -6,6 +6,7 @@ import (
 	"tmux-session-launcher/internal/fuzzyfinder"
 	"tmux-session-launcher/internal/mode"
 
+	"emperror.dev/errors"
 	"github.com/urfave/cli/v3"
 )
 
@@ -44,13 +45,26 @@ func (l *Launcher) Handler(ctx context.Context, cmd *cli.Command) error {
 }
 
 func (l *Launcher) registerHandlers() {
+	// TODO: mode next/prev still not working
 	l.Server.RegisterHandler(RouteNextMode, func(ctx context.Context, message string) (string, error) {
 		m := mode.Next()
+
+		err := fuzzyfinder.UpdateContentAndHeader(ctx)
+		if err != nil {
+			return "", errors.WrapIf(err, "failed to update fzf content and header")
+		}
+
 		return fmt.Sprintf("current mode: %s", m), nil
 	})
 
 	l.Server.RegisterHandler(RoutePrevMode, func(ctx context.Context, message string) (string, error) {
 		m := mode.Prev()
+
+		err := fuzzyfinder.UpdateContentAndHeader(ctx)
+		if err != nil {
+			return "", errors.WrapIf(err, "failed to update fzf content and header")
+		}
+
 		return fmt.Sprintf("current mode: %s", m), nil
 	})
 

@@ -14,7 +14,7 @@ import (
 
 func main() {
 	logger.SetupLogger(os.Stderr)
-	logger.SetVerbosity(3)
+	logger.SetVerbosity(1)
 
 	cmd := &cli.Command{
 		Name: "tmux-session-launcher",

@@ -18,7 +18,7 @@ type Directory struct {
 	Label             string
 }
 
-// TODO: extract to config + different domain
+// TODO: Make this configurable via a config file
 var dirsConfig = []DirectoryConfig{
 	{Path: "$HOME/.config", Depth: 1},
 	{Path: "$HOME/.local/share/nvim/lazy/LazyVim"},
@@ -30,6 +30,7 @@ var dirsConfig = []DirectoryConfig{
 	{Path: "$HOME/Work/_projects"},
 }
 
+// TODO: make the walking depth based on common project root files
 func GetDirectories() []Directory {
 	var result []Directory
 	for _, dir := range dirsConfig {

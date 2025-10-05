@@ -36,8 +36,7 @@ func (l *Launcher) Handler(ctx context.Context, cmd *cli.Command) error {
 
 	defer l.Server.Stop()
 
-	err = fuzzyfinder.Exec(ctx)
-	if err != nil {
+	if err := fuzzyfinder.Run(ctx); err != nil {
 		return err
 	}
 

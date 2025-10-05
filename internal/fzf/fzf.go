@@ -55,16 +55,18 @@ func UpdateContentAndHeader(ctx context.Context, port int, header string, conten
 
 	bodyHeader := fmt.Sprintf("change-header(%s)", header)
 	bodyContent := fmt.Sprintf("reload-sync(cat %s)", tmpFile.Name())
+	bodyMove := fmt.Sprint("first")
 
 	g, gCtx := errgroup.WithContext(ctx)
 	g.Go(func() error { return sendRequest(gCtx, port, bodyHeader) })
 	g.Go(func() error { return sendRequest(gCtx, port, bodyContent) })
+	g.Go(func() error { return sendRequest(gCtx, port, bodyMove) })
 
 	err = g.Wait()
 
 	// Clean up temp file after requests complete
 	// TODO: There's still a race condition here - fzf might not have read the file yet
-	// Consider keeping temp files and cleaning them up periodically
+	//  Consider keeping temp files and cleaning them up periodically
 	go func() {
 		time.Sleep(100 * time.Millisecond) // Give fzf time to read
 		os.Remove(tmpFile.Name())

@@ -112,10 +112,6 @@ func UpdateContentAndHeader(ctx context.Context) error {
 		return errors.WrapIf(err, "failed to build fzf input")
 	}
 
-	// logger.Debug("Updating fzf content and header")
-	// logger.Debugf("New header: %s", header)
-	// logger.Debugf("New content: \n%s", content)
-
 	if err := fzf.UpdateContentAndHeader(ctx, fzfPort, header, content); err != nil {
 		return errors.WrapIf(err, "failed to update fzf content and header")
 	}

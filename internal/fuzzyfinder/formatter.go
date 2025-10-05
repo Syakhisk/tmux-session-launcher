@@ -21,8 +21,8 @@ func buildInput(ctx context.Context) ([]byte, error) {
 
 	dirs := dirs.GetDirectories()
 
-	formattedSessions := formatEntryTmuxSessionsAsRows(sessions, separatorFzf)
-	formattedDirs := formatEntryDirectoryAsRows(dirs, separatorFzf)
+	formattedSessions := formatEntryTmuxSessionsAsRows(sessions, fzfSeparator)
+	formattedDirs := formatEntryDirectoryAsRows(dirs, fzfSeparator)
 
 	output := formatTable(append(formattedSessions, formattedDirs...))
 	return []byte(output), nil

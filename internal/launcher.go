@@ -53,4 +53,9 @@ func (l *Launcher) registerHandlers() {
 		m := mode.Prev()
 		return fmt.Sprintf("current mode: %s", m), nil
 	})
+
+	l.Server.RegisterHandler(RouteGetMode, func(ctx context.Context, message string) (string, error) {
+		m := mode.Get()
+		return fmt.Sprintf("current mode: %s", m), nil
+	})
 }

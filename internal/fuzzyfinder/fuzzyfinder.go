@@ -4,7 +4,10 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"os/exec"
+	"os"
+	"strings"
+	"tmux-session-launcher/internal/fzf"
+	"tmux-session-launcher/internal/mode"
 	"tmux-session-launcher/internal/tmux"
 	"tmux-session-launcher/pkg/logger"
 
@@ -14,9 +17,14 @@ import (
 )
 
 const (
-	separatorFzf      = "|"
+	fzfPort      = 6266
+	fzfSeparator = "|"
+
 	categorySession   = "session"
 	categoryDirectory = "directory"
+
+	keyModeNext = "ctrl-j"
+	keyModePrev = "ctrl-k"
 )
 
 var (
@@ -31,42 +39,54 @@ var (
 func Run(ctx context.Context) error {
 	logger := logger.WithPrefix("fuzzyfinder.Exec")
 
+	// fmt.Sprintf("--bind=%s:execute-silent(%s --action mode-next)+reload(%s --static content)+transform-header(%s --static header)", keyModeNext, originalCmd.Name, originalCmd.Name, originalCmd.Name),
+	// fmt.Sprintf("--bind=%s:execute-silent(%s --action mode-next)+reload(%s --static content)+transform-header(%s --static header)", keyModePrev, originalCmd.Name, originalCmd.Name, originalCmd.Name),
+
+	execPath, err := os.Executable()
+	if err != nil {
+		return errors.WrapIf(err, "failed to get executable path")
+	}
+
 	args := []string{
 		"--ansi",
 		"--no-sort",
 		"--no-hscroll",
-		"--delimiter", separatorFzf, // used as nth delimiter
+		"--listen", fmt.Sprint(fzfPort),
+		"--header", buildHeader(),
+		"--delimiter", fzfSeparator, // used as nth delimiter
 		"--with-nth", "1,2", // what to show in the list
 		"--nth", "2", // what to search in (based on with-nth)
 		"--accept-nth", "3,4", // what to output on accept
+		fmt.Sprintf("--bind=%s:execute-silent(%s action mode-next)", keyModeNext, execPath),
+		fmt.Sprintf("--bind=%s:execute-silent(%s action mode-previous)", keyModePrev, execPath),
 	}
-
-	cmd := exec.CommandContext(ctx, "fzf", args...)
 
 	input, err := buildInput(ctx)
 	if err != nil {
 		return errors.WrapIf(err, "failed to build fzf input")
 	}
 
-	reader := bytes.NewReader(input)
-	cmd.Stdin = reader
+	outputBuf := &bytes.Buffer{}
+	errBuf := &bytes.Buffer{}
 
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
-			exitCode := exitErr.ExitCode()
-			if exitCode == 130 {
-				logger.Info("fzf was cancelled by user (exit code 130)")
-				return nil
-			}
+	if err := fzf.Select(
+		ctx,
+		args,
+		bytes.NewReader(input),
+		outputBuf,
+		errBuf,
+	); err != nil {
+		if errors.Is(err, fzf.ErrUserCancelled) {
+			return nil
 		}
 
-		return errors.Wrapf(err, "fzf failed with stderr: %s", string(output))
+		return errors.WrapIff(err, "fzf selection failed: %+v", errBuf.String())
 	}
 
-	logger.Debugf("fzf output: %s", string(output))
+	output := outputBuf.String()
+	logger.Debugf("fzf output: %s", output)
 
-	category, id, err := parseSelectedOutput(string(output), separatorFzf)
+	category, id, err := parseSelectedOutput(output, fzfSeparator)
 	if err != nil {
 		return errors.WrapIf(err, "failed to parse fzf output")
 	}
@@ -87,4 +107,25 @@ func Run(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func buildHeader() string {
+	header := color.New(color.Faint).Sprintf("Press %s/%s to switch mode\n", keyModeNext, keyModePrev)
+
+	c := color.New(color.Faint, color.Bold, color.Italic)
+
+	mSlc := make([]string, 0, len(mode.Modes))
+	currentMode := mode.Get()
+	for _, m := range mode.Modes {
+		if m == currentMode {
+			mSlc = append(mSlc, colorCurrentSession(fmt.Sprintf("[%s]", m)))
+			continue
+		}
+
+		mSlc = append(mSlc, c.Sprint(m))
+	}
+
+	header += strings.Join(mSlc, " ")
+
+	return header
 }

@@ -2,7 +2,7 @@ package internal
 
 import (
 	"context"
-	"tmux-session-launcher/pkg/logger"
+	"fmt"
 
 	"emperror.dev/errors"
 	"github.com/urfave/cli/v3"
@@ -22,6 +22,12 @@ func HandlerActionPrevMode(ctx context.Context, cmd *cli.Command) error {
 	return action.PrevMode(ctx)
 }
 
+func HandlerActionGetMode(ctx context.Context, cmd *cli.Command) error {
+	client := NewClient(SockAddress)
+	action := NewAction(client)
+	return action.GetMode(ctx)
+}
+
 type Action struct {
 	client *Client
 }
@@ -38,7 +44,7 @@ func (a *Action) NextMode(ctx context.Context) error {
 		return errors.Wrap(err, "failed to get next mode")
 	}
 
-	logger.Infof("Got response: %s", res)
+	fmt.Printf("Got response: %s\n", res)
 
 	return nil
 }
@@ -49,7 +55,18 @@ func (a *Action) PrevMode(ctx context.Context) error {
 		return errors.Wrap(err, "failed to get next mode")
 	}
 
-	logger.Infof("Got response: %s", res)
+	fmt.Printf("Got response: %s\n", res)
+
+	return nil
+}
+
+func (a *Action) GetMode(ctx context.Context) error {
+	res, err := a.client.Send(RouteGetMode, "")
+	if err != nil {
+		return errors.Wrap(err, "failed to get current mode")
+	}
+
+	fmt.Printf("Got response: %s\n", res)
 
 	return nil
 }

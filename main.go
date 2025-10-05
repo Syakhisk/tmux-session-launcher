@@ -39,14 +39,18 @@ func main() {
 				Name: "action",
 				Commands: []*cli.Command{
 					{
-						Name:    "next-mode",
+						Name:    "mode-next",
 						Aliases: []string{"next"},
 						Action:  WithSignalHandling(i.HandlerActionNextMode),
 					},
 					{
-						Name:    "previous-mode",
+						Name:    "mode-previous",
 						Aliases: []string{"previous", "prev"},
 						Action:  WithSignalHandling(i.HandlerActionPrevMode),
+					},
+					{
+						Name:   "mode-get",
+						Action: WithSignalHandling(i.HandlerActionGetMode),
 					},
 				},
 			},

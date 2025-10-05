@@ -5,14 +5,14 @@ import "sync"
 type Mode string
 
 const (
-	ModeAll      Mode = "all"
-	ModeSessions Mode = "sessions"
-	ModeDir      Mode = "dir"
+	ModeAll       Mode = "all"
+	ModeSession   Mode = "session"
+	ModeDirectory Mode = "directory"
 )
 
 var mu sync.Mutex
 var modeCurrent Mode = ModeAll
-var modes = []Mode{ModeAll, ModeSessions, ModeDir}
+var Modes = []Mode{ModeAll, ModeSession, ModeDirectory}
 
 func Get() Mode {
 	return modeCurrent
@@ -26,12 +26,12 @@ func Next() Mode {
 	mu.Lock()
 	defer mu.Unlock()
 
-	for i, m := range modes {
+	for i, m := range Modes {
 		if m == modeCurrent {
-			if i == len(modes)-1 {
-				modeCurrent = modes[0]
+			if i == len(Modes)-1 {
+				modeCurrent = Modes[0]
 			} else {
-				modeCurrent = modes[i+1]
+				modeCurrent = Modes[i+1]
 			}
 
 			break
@@ -45,16 +45,20 @@ func Prev() Mode {
 	mu.Lock()
 	defer mu.Unlock()
 
-	for i, m := range modes {
+	for i, m := range Modes {
 		if m == modeCurrent {
 			if i == 0 {
-				modeCurrent = modes[len(modes)-1]
+				modeCurrent = Modes[len(Modes)-1]
 			} else {
-				modeCurrent = modes[i-1]
+				modeCurrent = Modes[i-1]
 			}
 			break
 		}
 	}
 
 	return modeCurrent
+}
+
+func (m Mode) String() string {
+	return string(m)
 }

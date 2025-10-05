@@ -51,7 +51,7 @@ func (c *Client) Send(route, payload string) (string, error) {
 
 	response := strings.Join(payloadLines, "\n")
 	if strings.HasPrefix(response, "ERROR:") {
-		return "", fmt.Errorf(strings.TrimPrefix(response, "ERROR: "))
+		return "", fmt.Errorf("%s", strings.TrimPrefix(response, "ERROR: "))
 	}
 
 	return response, nil

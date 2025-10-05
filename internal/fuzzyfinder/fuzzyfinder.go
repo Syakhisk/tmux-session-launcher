@@ -4,9 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 	"tmux-session-launcher/internal/dirs"
 	"tmux-session-launcher/internal/tmux"
@@ -130,19 +128,17 @@ func formatEntryTmuxSessionsAsRows(sessions []tmux.Session, fzfSep string) [][]s
 	return rows
 }
 
-func formatEntryDirectoryAsRows(dirs []string, fzfSep string) [][]string {
+func formatEntryDirectoryAsRows(dirs []dirs.Directory, fzfSep string) [][]string {
 	rows := make([][]string, 0)
 
 	for _, d := range dirs {
-		base := filepath.Base(d)
-		truncatedHome := strings.Replace(d, os.ExpandEnv("$HOME"), "~", 1)
 		cols := make([]string, 0)
 
 		cols = append(cols, colorCategoryDir("directory"))
-		cols = append(cols, base)
-		cols = append(cols, colorPath(truncatedHome))
-		cols = append(cols, colorMute(fzfSep, truncatedHome))
-		cols = append(cols, colorMute(fzfSep+"directory"+fzfSep+d))
+		cols = append(cols, d.Label)
+		cols = append(cols, colorPath(d.TruncatedHomePath))
+		cols = append(cols, colorMute(fzfSep, d.Label))
+		cols = append(cols, colorMute(fzfSep+"directory"+fzfSep+d.FullPath))
 
 		rows = append(rows, cols)
 	}

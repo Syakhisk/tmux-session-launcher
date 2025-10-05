@@ -11,22 +11,26 @@ import (
 	"tmux-session-launcher/internal/dirs"
 	"tmux-session-launcher/internal/tmux"
 	"tmux-session-launcher/pkg/logger"
+	"unicode/utf8"
 
+	"github.com/acarl005/stripansi"
 	"github.com/fatih/color"
+	"github.com/rodaine/table"
 
 	"emperror.dev/errors"
 )
 
 const (
-	separatorColumns = "::"
-	separatorFzf     = "|"
+	separatorFzf = "|"
 )
 
 var (
-	colorCategory = color.New(color.FgHiBlue, color.Italic).Sprint
-	// colorCurrentSession = color.New(color.FgHiGreen, color.Bold).Sprint
-	colorPath = color.New(color.FgHiBlack, color.Italic).Sprint
-	colorMute = color.RGB(0, 0, 0).Sprint
+	colorDefault         = fmt.Sprint
+	colorCategorySession = color.New(color.FgHiCyan, color.Italic).Sprint
+	colorCategoryDir     = color.New(color.FgHiBlue, color.Italic).Sprint
+	colorCurrentSession  = color.New(color.FgHiGreen, color.Bold).Sprint
+	colorPath            = color.New(color.FgHiBlack, color.Italic).Sprint
+	colorMute            = color.RGB(0, 0, 0).Sprint
 )
 
 func Exec(ctx context.Context) error {
@@ -39,7 +43,7 @@ func Exec(ctx context.Context) error {
 		"--delimiter", separatorFzf, // used as nth delimiter
 		"--with-nth", "1,2", // what to show in the list
 		"--nth", "2", // what to search in (based on with-nth)
-		"--accept-nth", "{3,4}", // what to output on accept
+		"--accept-nth", "3,4", // what to output on accept
 	}
 
 	cmd := exec.CommandContext(ctx, "fzf", args...)
@@ -78,86 +82,70 @@ func buildInput(ctx context.Context) ([]byte, error) {
 
 	dirs := dirs.GetDirectories()
 
-	formattedSessions := formatEntryTmuxSessions(sessions, separatorColumns, separatorFzf)
-	formattedDirs := formatEntryDirectory(dirs, separatorColumns, separatorFzf)
+	formattedSessions := formatEntryTmuxSessionsAsRows(sessions, separatorFzf)
+	formattedDirs := formatEntryDirectoryAsRows(dirs, separatorFzf)
 
-	prettified, _ := prettifyColumns(formattedSessions+formattedDirs, separatorColumns)
-
-	return []byte(prettified), nil
+	output := formatTable(append(formattedSessions, formattedDirs...))
+	return []byte(output), nil
 }
 
-func prettifyColumns(input string, separator string) (string, error) {
-	cmd := exec.Command(
-		"column",
-		"-t",
-		"-s", separator,
-	)
-	cmd.Stdin = strings.NewReader(input)
+func formatTable(rows [][]string) string {
+	var output strings.Builder
+	// fzf metadata: display|searchable|type|id
+	tbl := table.
+		New("category", "name", "path", "searchable", "type+id").
+		WithWriter(&output).
+		WithWidthFunc(func(s string) int {
+			return utf8.RuneCountInString(stripansi.Strip(s))
+		}).
+		SetRows(rows).
+		WithPrintHeaders(false)
 
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		logger.Errorf("Failed to prettify columns (exit code %v): %s", err, string(output))
-		return input, nil // Return original input on error
-	}
+	tbl.Print()
 
-	return strings.TrimSpace(string(output)), nil
+	return output.String()
 }
 
-func formatEntryTmuxSessions(sessions []tmux.Session, columnSep, fzfSep string) string {
-	var builder strings.Builder
+func formatEntryTmuxSessionsAsRows(sessions []tmux.Session, fzfSep string) [][]string {
+	rows := make([][]string, 0)
 
 	for _, s := range sessions {
 		sessionName := s.Name
 		if s.Current {
-			// sessionName = colorCurrentSession(sessionName)
-			sessionName = fmt.Sprintf("[%s]", sessionName)
+			sessionName = fmt.Sprintf("[%s]", colorCurrentSession(sessionName))
+		} else {
+			sessionName = colorDefault(sessionName)
 		}
 
-		builder.WriteString(colorCategory("session"))
-		builder.WriteString(columnSep)
-		builder.WriteString(sessionName)
-		builder.WriteString(columnSep)
-		builder.WriteString(colorPath(s.Path))
+		cols := make([]string, 0)
+		cols = append(cols, colorCategorySession("session"))
+		cols = append(cols, sessionName)
+		cols = append(cols, colorPath(s.Path))
+		cols = append(cols, colorMute(fzfSep, s.Name))
+		cols = append(cols, colorMute(fzfSep+"session"+fzfSep+s.ID))
 
-		// fzf metadata: display|searchable|type|id
-		builder.WriteString(colorMute(
-			columnSep + fzfSep + s.Name + columnSep + fzfSep,
-		))
-
-		builder.WriteString("session")
-		builder.WriteString(fzfSep)
-		builder.WriteString(s.ID)
-
-		builder.WriteString("\n")
+		rows = append(rows, cols)
 	}
 
-	return builder.String()
+	return rows
 }
 
-func formatEntryDirectory(dirs []string, columnSep, fzfSep string) string {
-	var builder strings.Builder
+func formatEntryDirectoryAsRows(dirs []string, fzfSep string) [][]string {
+	rows := make([][]string, 0)
 
 	for _, d := range dirs {
 		base := filepath.Base(d)
-
 		truncatedHome := strings.Replace(d, os.ExpandEnv("$HOME"), "~", 1)
-		builder.WriteString(colorCategory("directory"))
-		builder.WriteString(columnSep)
-		builder.WriteString(base)
-		builder.WriteString(columnSep)
-		builder.WriteString(colorPath(truncatedHome))
+		cols := make([]string, 0)
 
-		// fzf metadata: display|searchable|type|path
-		builder.WriteString(colorMute(
-			columnSep + fzfSep + truncatedHome + columnSep + fzfSep,
-		))
+		cols = append(cols, colorCategoryDir("directory"))
+		cols = append(cols, base)
+		cols = append(cols, colorPath(truncatedHome))
+		cols = append(cols, colorMute(fzfSep, truncatedHome))
+		cols = append(cols, colorMute(fzfSep+"directory"+fzfSep+d))
 
-		builder.WriteString("directory")
-		builder.WriteString(fzfSep)
-		builder.WriteString(d)
-
-		builder.WriteString("\n")
+		rows = append(rows, cols)
 	}
 
-	return builder.String()
+	return rows
 }

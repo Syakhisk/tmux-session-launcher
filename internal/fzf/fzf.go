@@ -35,6 +35,19 @@ func Select(ctx context.Context, args []string, stdin io.Reader, stdout io.Write
 	return nil
 }
 
+func SelectWithString(ctx context.Context, args []string, input string) (string, string, error) {
+	stdin := strings.NewReader(input)
+	stdout := &strings.Builder{}
+	stderr := &strings.Builder{}
+
+	err := Select(ctx, args, stdin, stdout, stderr)
+	if err != nil && errors.Is(err, ErrUserCancelled) {
+		return "", "", ErrUserCancelled
+	}
+
+	return strings.TrimSpace(stdout.String()), strings.TrimSpace(stderr.String()), err
+}
+
 func UpdateContentAndHeader(ctx context.Context, port int, header string) error {
 	executable, err := os.Executable()
 	if err != nil {
@@ -43,7 +56,7 @@ func UpdateContentAndHeader(ctx context.Context, port int, header string) error 
 
 	bodyHeader := fmt.Sprintf("change-header(%s)", header)
 	bodyContent := fmt.Sprintf("reload-sync(%s action content-get)", executable)
-	bodyMove := fmt.Sprint("first")
+	bodyMove := "first"
 
 	g, gCtx := errgroup.WithContext(ctx)
 	g.Go(func() error { return sendRequest(gCtx, port, bodyHeader) })

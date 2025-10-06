@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"tmux-session-launcher/internal/fzf"
 	"tmux-session-launcher/internal/tmux"
 	"tmux-session-launcher/pkg/logger"
@@ -35,7 +36,7 @@ var (
 	colorMute            = color.RGB(0, 0, 0).Sprint
 )
 
-func Run(ctx context.Context) error {
+func Launcher(ctx context.Context) error {
 	log := logger.WithPrefix("fuzzyfinder.Exec")
 
 	execPath, err := os.Executable()
@@ -55,7 +56,7 @@ func Run(ctx context.Context) error {
 		"--accept-nth", "3,4", // what to output on accept
 		fmt.Sprintf("--bind=%s:execute-silent(%s action mode-next)", keyModeNext, execPath),
 		fmt.Sprintf("--bind=%s:execute-silent(%s action mode-previous)", keyModePrev, execPath),
-		fmt.Sprintf("--bind=%s:execute-silent(%s action open-in)", keyOpenIn, execPath),
+		fmt.Sprintf("--bind=%s:become(%s action open-in {3,4})", keyOpenIn, execPath),
 	}
 
 	input, err := buildContent(ctx)
@@ -81,6 +82,11 @@ func Run(ctx context.Context) error {
 	}
 
 	output := outputBuf.String()
+	if output == "" {
+		log.Debug("No output from fzf")
+		return nil
+	}
+
 	log.Debugf("fzf output: %s", output)
 
 	category, id, err := parseSelectedOutput(output, fzfSeparator)
@@ -123,4 +129,65 @@ func GetContent(ctx context.Context) (string, error) {
 	}
 
 	return content, nil
+}
+
+func OpenIn(ctx context.Context, selection string) error {
+	split := strings.Split(selection, fzfSeparator)
+	if len(split) != 2 {
+		return fmt.Errorf("invalid selection format: %s", selection)
+	}
+
+	category := strings.TrimSpace(split[0])
+	path := strings.TrimSpace(split[1])
+
+	if category == "session" {
+		return tmux.SessionAttach(ctx, path)
+	}
+
+	if category != "directory" {
+		return fmt.Errorf("invalid category: %s", category)
+	}
+
+	log := logger.WithPrefix("fuzzyfinder.OpenIn")
+	input := []string{
+		"pane",
+		"window",
+		"session",
+	}
+
+	binds := make([]string, 0)
+	for _, option := range input {
+		binds = append(binds, string(option[0]))
+	}
+
+	args := []string{
+		"--multi",
+		"--bind", "result:jump,jump:accept",
+		"--jump-labels", strings.Join(binds, ""),
+	}
+
+	output, errOutput, err := fzf.SelectWithString(ctx, args, strings.Join(input, "\n"))
+	if err != nil {
+		if errors.Is(err, fzf.ErrUserCancelled) {
+			return nil
+		}
+
+		log.Errorf("fzf selection failed: %v", errOutput)
+		return errors.WrapIf(err, "fzf selection failed")
+	}
+
+	log.Debugf("fzf output: %s | path: %s", output, path)
+
+	switch output {
+	case "pane":
+		err = tmux.PaneCreate(ctx, path)
+	case "window":
+		err = tmux.WindowCreate(ctx, path)
+	case "session":
+		_, err = tmux.SessionCreateOrAttach(ctx, tmux.BuildSessionNameFromPath(path), path)
+	default:
+		err = errors.New("invalid input")
+	}
+
+	return err
 }

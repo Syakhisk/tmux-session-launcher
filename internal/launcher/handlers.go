@@ -42,4 +42,8 @@ func (l *Launcher) setupHandlers() {
 	l.Server.RegisterHandler(constants.RouteGetContent, func(ctx context.Context, message string) (string, error) {
 		return fuzzyfinder.GetContent(ctx)
 	})
+
+	l.Server.RegisterHandler(constants.RouteOpenIn, func(ctx context.Context, message string) (string, error) {
+		return "", fuzzyfinder.OpenIn(ctx, message)
+	})
 }

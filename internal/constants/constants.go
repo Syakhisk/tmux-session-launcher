@@ -7,4 +7,5 @@ const (
 	RoutePrevMode   = "prev"
 	RouteGetMode    = "get-mode"
 	RouteGetContent = "get-content"
+	RouteOpenIn     = "open-in"
 )

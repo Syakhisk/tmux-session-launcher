@@ -1,7 +1,5 @@
 # TODO
 
-- [ ] picker (session, window, pane)
-  - [ ] alternate select (to pick), keep enter as session
 - [ ] move directory to a config
 - [ ] Preview:
   - sessions: show session screenshot similar to tmux
@@ -14,3 +12,5 @@
 - [x] implement mode
 - [x] use subcommand for getting content
 - [x] fix tmux session path (home not truncated)
+- [x] picker (session, window, pane)
+  - [x] alternate select (to pick), keep enter as session

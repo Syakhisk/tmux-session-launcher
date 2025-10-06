@@ -67,3 +67,16 @@ func (a *Action) GetContent(ctx context.Context) error {
 
 	return nil
 }
+
+func (a *Action) OpenIn(ctx context.Context, selectionString string) error {
+	log := logger.WithPrefix("action.PrevMode")
+
+	res, err := a.client.Send(constants.RouteOpenIn, selectionString)
+	if err != nil {
+		return errors.Wrap(err, "failed to open in")
+	}
+
+	log.Debugf("Raw response: %s", res)
+
+	return nil
+}

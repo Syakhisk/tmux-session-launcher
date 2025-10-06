@@ -44,7 +44,7 @@ func GetCurrentSession(ctx context.Context) (*Session, error) {
 		return nil, errors.WrapIf(err, "failed to get current tmux session")
 	}
 
-	return sessionParse(strings.TrimSpace(string(output)))
+	return parseSession(strings.TrimSpace(string(output)))
 }
 
 func GetSessions(ctx context.Context) ([]Session, error) {
@@ -72,7 +72,7 @@ func GetSessions(ctx context.Context) ([]Session, error) {
 
 	// PERF: can use cmd.StdoutPipe and a scanner to avoid loading all output in memory
 	for line := range strings.SplitSeq(string(output), "\n") {
-		session, err := sessionParse(line)
+		session, err := parseSession(line)
 		if err != nil {
 			continue
 		}
@@ -123,7 +123,7 @@ func SessionCreate(ctx context.Context, name, path string) (*Session, error) {
 		return nil, errors.WrapIf(err, "failed to get created tmux session")
 	}
 
-	return sessionParse(strings.TrimSpace(string(output)))
+	return parseSession(strings.TrimSpace(string(output)))
 }
 
 func SessionAttach(ctx context.Context, id string) error {
@@ -162,6 +162,46 @@ func SessionCreateOrAttach(ctx context.Context, name, path string) (*Session, er
 	return session, nil
 }
 
+func PaneCreate(ctx context.Context, path string) error {
+	cmd := exec.CommandContext(
+		ctx,
+		"tmux",
+		"split-window",
+		"-c", path, // start directory
+	)
+
+	output, err := cmd.CombinedOutput()
+
+	if err != nil {
+		if err := handleTmuxError(string(output)); err != nil {
+			return err
+		}
+
+		return errors.WrapIf(err, "failed to create tmux pane")
+	}
+
+	return nil
+}
+
+func WindowCreate(ctx context.Context, path string) error {
+	cmd := exec.CommandContext(
+		ctx,
+		"tmux",
+		"new-window",
+		"-c", path, // start directory
+	)
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		if err := handleTmuxError(string(output)); err != nil {
+			return err
+		}
+		return errors.WrapIf(err, "failed to create tmux window")
+	}
+
+	return nil
+}
+
 func BuildSessionNameFromPath(path string) string {
 	base := filepath.Base(path)
 
@@ -173,7 +213,7 @@ func BuildSessionNameFromPath(path string) string {
 	return replacer.Replace(base)
 }
 
-func sessionParse(line string) (*Session, error) {
+func parseSession(line string) (*Session, error) {
 	parts := strings.SplitN(line, "|", 3)
 	if len(parts) < 3 {
 		return nil, errors.New("unexpected output from tmux list-sessions")

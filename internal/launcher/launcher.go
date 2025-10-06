@@ -9,13 +9,6 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-func HandlerLauncer(ctx context.Context, cmd *cli.Command) error {
-	srv := server.NewServer(constants.SockAddress)
-	lcr := NewLauncher(srv)
-
-	return lcr.Handler(ctx, cmd)
-}
-
 type Launcher struct {
 	Server *server.Server
 }
@@ -36,9 +29,16 @@ func (l *Launcher) Handler(ctx context.Context, cmd *cli.Command) error {
 
 	defer l.Server.Stop()
 
-	if err := fuzzyfinder.Run(ctx); err != nil {
+	if err := fuzzyfinder.Launcher(ctx); err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func HandlerLauncer(ctx context.Context, cmd *cli.Command) error {
+	srv := server.NewServer(constants.SockAddress)
+	lcr := NewLauncher(srv)
+
+	return lcr.Handler(ctx, cmd)
 }

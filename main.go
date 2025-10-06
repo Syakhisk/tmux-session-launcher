@@ -42,24 +42,24 @@ func main() {
 					{
 						Name:    "mode-next",
 						Aliases: []string{"next"},
-						Action:  WithSignalHandling(action.HandlerActionNextMode),
+						Action:  WithSignalHandling(action.HandlerNextMode),
 					},
 					{
 						Name:    "mode-previous",
 						Aliases: []string{"previous", "prev"},
-						Action:  WithSignalHandling(action.HandlerActionPrevMode),
+						Action:  WithSignalHandling(action.HandlerPrevMode),
 					},
 					{
 						Name:   "mode-get",
-						Action: WithSignalHandling(action.HandlerActionGetMode),
+						Action: WithSignalHandling(action.HandlerGetMode),
 					},
 					{
 						Name:   "content-get",
-						Action: WithSignalHandling(action.HandlerActionGetContent),
+						Action: WithSignalHandling(action.HandlerGetContent),
 					},
 					{
 						Name:   "open-in",
-						Action: WithSignalHandling(action.HandlerActionOpenIn),
+						Action: WithSignalHandling(action.HandlerOpenIn),
 					},
 				},
 			},

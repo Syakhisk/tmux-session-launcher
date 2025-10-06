@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"tmux-session-launcher/pkg/util"
 )
 
 type DirectoryConfig struct {
@@ -36,7 +37,7 @@ func GetDirectories() []Directory {
 	for _, dir := range dirsConfig {
 		expandedPath := os.ExpandEnv(dir.Path)
 		base := filepath.Base(expandedPath)
-		truncatedHome := strings.Replace(expandedPath, os.ExpandEnv("$HOME"), "~", 1)
+		truncatedHome := util.TruncateHomePath(expandedPath)
 
 		result = append(result, Directory{
 			FullPath:          expandedPath,
@@ -65,7 +66,7 @@ func getSubDirectories(basePath string, baseLabel string, depth int) []Directory
 		if entry.IsDir() && !strings.HasPrefix(entry.Name(), ".") {
 			fullPath := filepath.Join(basePath, entry.Name())
 			baseLabel := filepath.Join(baseLabel, entry.Name())
-			truncatedHome := strings.Replace(fullPath, os.ExpandEnv("$HOME"), "~", 1)
+			truncatedHome := util.TruncateHomePath(fullPath)
 
 			result = append(result, Directory{
 				FullPath:          fullPath,

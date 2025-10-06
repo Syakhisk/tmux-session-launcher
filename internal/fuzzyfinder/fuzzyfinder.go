@@ -107,14 +107,18 @@ func Run(ctx context.Context) error {
 func UpdateContentAndHeader(ctx context.Context) error {
 	header := buildHeader()
 
-	content, err := buildContent(ctx)
-	if err != nil {
-		return errors.WrapIf(err, "failed to build fzf input")
-	}
-
-	if err := fzf.UpdateContentAndHeader(ctx, fzfPort, header, content); err != nil {
+	if err := fzf.UpdateContentAndHeader(ctx, fzfPort, header); err != nil {
 		return errors.WrapIf(err, "failed to update fzf content and header")
 	}
 
 	return nil
+}
+
+func GetContent(ctx context.Context) (string, error) {
+	content, err := buildContent(ctx)
+	if err != nil {
+		return "", errors.WrapIf(err, "failed to build fzf input")
+	}
+
+	return content, nil
 }

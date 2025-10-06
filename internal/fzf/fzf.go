@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-	"time"
 	"tmux-session-launcher/pkg/logger"
 
 	"emperror.dev/errors"
@@ -36,25 +35,14 @@ func Select(ctx context.Context, args []string, stdin io.Reader, stdout io.Write
 	return nil
 }
 
-func UpdateContentAndHeader(ctx context.Context, port int, header string, content string) error {
-	logger := logger.WithPrefix("fzf.UpdateContentAndHeader")
-	logger.Infof("Content length: %d characters", len(content))
-
-	// HACK: Use a temporary file to avoid issues with large content, but this is not ideal since it needs a file
-	//  - maybe create a subcommand to be called by fzf
-	// Write content to temporary file
-	tmpFile, err := os.CreateTemp("", "fzf-content-*.txt")
+func UpdateContentAndHeader(ctx context.Context, port int, header string) error {
+	executable, err := os.Executable()
 	if err != nil {
-		return errors.WrapIf(err, "failed to create temp file")
-	}
-	defer tmpFile.Close()
-
-	if _, err := tmpFile.WriteString(content); err != nil {
-		return errors.WrapIf(err, "failed to write to temp file")
+		return errors.WrapIf(err, "failed to get executable path")
 	}
 
 	bodyHeader := fmt.Sprintf("change-header(%s)", header)
-	bodyContent := fmt.Sprintf("reload-sync(cat %s)", tmpFile.Name())
+	bodyContent := fmt.Sprintf("reload-sync(%s action content-get)", executable)
 	bodyMove := fmt.Sprint("first")
 
 	g, gCtx := errgroup.WithContext(ctx)
@@ -62,17 +50,7 @@ func UpdateContentAndHeader(ctx context.Context, port int, header string, conten
 	g.Go(func() error { return sendRequest(gCtx, port, bodyContent) })
 	g.Go(func() error { return sendRequest(gCtx, port, bodyMove) })
 
-	err = g.Wait()
-
-	// Clean up temp file after requests complete
-	// TODO: There's still a race condition here - fzf might not have read the file yet
-	//  Consider keeping temp files and cleaning them up periodically
-	go func() {
-		time.Sleep(100 * time.Millisecond) // Give fzf time to read
-		os.Remove(tmpFile.Name())
-	}()
-
-	return err
+	return g.Wait()
 }
 
 func sendRequest(ctx context.Context, port int, body string) error {

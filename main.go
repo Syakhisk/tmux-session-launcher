@@ -52,6 +52,10 @@ func main() {
 						Name:   "mode-get",
 						Action: WithSignalHandling(i.HandlerActionGetMode),
 					},
+					{
+						Name: "content-get",
+						Action: WithSignalHandling(i.HandlerActionGetContent),
+					},
 				},
 			},
 		},

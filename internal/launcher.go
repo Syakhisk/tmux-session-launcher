@@ -45,7 +45,6 @@ func (l *Launcher) Handler(ctx context.Context, cmd *cli.Command) error {
 }
 
 func (l *Launcher) registerHandlers() {
-	// TODO: mode next/prev still not working
 	l.Server.RegisterHandler(RouteNextMode, func(ctx context.Context, message string) (string, error) {
 		m := mode.Next()
 
@@ -70,6 +69,11 @@ func (l *Launcher) registerHandlers() {
 
 	l.Server.RegisterHandler(RouteGetMode, func(ctx context.Context, message string) (string, error) {
 		m := mode.Get()
+
 		return fmt.Sprintf("current mode: %s", m), nil
+	})
+
+	l.Server.RegisterHandler(RouteGetContent, func(ctx context.Context, message string) (string, error) {
+		return fuzzyfinder.GetContent(ctx)
 	})
 }

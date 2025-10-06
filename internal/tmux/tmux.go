@@ -5,6 +5,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"tmux-session-launcher/pkg/util"
 
 	"emperror.dev/errors"
 )
@@ -181,6 +182,6 @@ func sessionParse(line string) (*Session, error) {
 	return &Session{
 		ID:   strings.TrimSpace(parts[0]),
 		Name: strings.TrimSpace(parts[1]),
-		Path: strings.TrimSpace(parts[2]),
+		Path: util.TruncateHomePath(strings.TrimSpace(parts[2])),
 	}, nil
 }

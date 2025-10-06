@@ -54,8 +54,8 @@ func UpdateContentAndHeader(ctx context.Context, port int, header string) error 
 }
 
 func sendRequest(ctx context.Context, port int, body string) error {
-	logger := logger.WithPrefix("fzf.sendRequest")
-	logger.Debugf("Sending request with body: %.200s", body)
+	log := logger.WithPrefix("fzf.sendRequest")
+	log.Debugf("Sending request with body: %.200s", body)
 
 	req, err := http.NewRequestWithContext(
 		ctx,
@@ -65,13 +65,13 @@ func sendRequest(ctx context.Context, port int, body string) error {
 	)
 
 	if err != nil {
-		logger.Errorf("Failed to create request: %v", err)
+		log.Errorf("Failed to create request: %v", err)
 		return errors.WrapIf(err, "failed to create HTTP request")
 	}
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		logger.Errorf("Failed to send request: %v", err)
+		log.Errorf("Failed to send request: %v", err)
 		return errors.WrapIf(err, "failed to send HTTP request")
 	}
 	defer resp.Body.Close()
@@ -82,8 +82,8 @@ func sendRequest(ctx context.Context, port int, body string) error {
 		return errors.WrapIf(err, "failed to read response body")
 	}
 
-	logger.Infof("Got response:\n%s", responseBody)
+	log.Infof("Got response:\n%s", responseBody)
 
-	logger.Debugf("Response status: %s", resp.Status)
+	log.Debugf("Response status: %s", resp.Status)
 	return nil
 }

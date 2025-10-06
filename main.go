@@ -6,7 +6,8 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
-	i "tmux-session-launcher/internal"
+	"tmux-session-launcher/internal/action"
+	"tmux-session-launcher/internal/launcher"
 	"tmux-session-launcher/pkg/logger"
 
 	"github.com/urfave/cli/v3"
@@ -33,7 +34,7 @@ func main() {
 		Commands: []*cli.Command{
 			{
 				Name:   "launch",
-				Action: WithSignalHandling(i.HandlerLauncer),
+				Action: WithSignalHandling(launcher.HandlerLauncer),
 			},
 			{
 				Name: "action",
@@ -41,20 +42,24 @@ func main() {
 					{
 						Name:    "mode-next",
 						Aliases: []string{"next"},
-						Action:  WithSignalHandling(i.HandlerActionNextMode),
+						Action:  WithSignalHandling(action.HandlerActionNextMode),
 					},
 					{
 						Name:    "mode-previous",
 						Aliases: []string{"previous", "prev"},
-						Action:  WithSignalHandling(i.HandlerActionPrevMode),
+						Action:  WithSignalHandling(action.HandlerActionPrevMode),
 					},
 					{
 						Name:   "mode-get",
-						Action: WithSignalHandling(i.HandlerActionGetMode),
+						Action: WithSignalHandling(action.HandlerActionGetMode),
 					},
 					{
-						Name: "content-get",
-						Action: WithSignalHandling(i.HandlerActionGetContent),
+						Name:   "content-get",
+						Action: WithSignalHandling(action.HandlerActionGetContent),
+					},
+					{
+						Name:   "open-in",
+						Action: WithSignalHandling(action.HandlerActionOpenIn),
 					},
 				},
 			},

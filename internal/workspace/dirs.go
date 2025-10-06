@@ -1,4 +1,4 @@
-package dirs
+package workspace
 
 import (
 	"os"

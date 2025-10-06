@@ -23,6 +23,7 @@ const (
 
 	keyModeNext = "ctrl-j"
 	keyModePrev = "ctrl-k"
+	keyOpenIn   = "ctrl-o"
 )
 
 var (
@@ -35,7 +36,7 @@ var (
 )
 
 func Run(ctx context.Context) error {
-	logger := logger.WithPrefix("fuzzyfinder.Exec")
+	log := logger.WithPrefix("fuzzyfinder.Exec")
 
 	execPath, err := os.Executable()
 	if err != nil {
@@ -54,6 +55,7 @@ func Run(ctx context.Context) error {
 		"--accept-nth", "3,4", // what to output on accept
 		fmt.Sprintf("--bind=%s:execute-silent(%s action mode-next)", keyModeNext, execPath),
 		fmt.Sprintf("--bind=%s:execute-silent(%s action mode-previous)", keyModePrev, execPath),
+		fmt.Sprintf("--bind=%s:execute-silent(%s action open-in)", keyOpenIn, execPath),
 	}
 
 	input, err := buildContent(ctx)
@@ -79,7 +81,7 @@ func Run(ctx context.Context) error {
 	}
 
 	output := outputBuf.String()
-	logger.Debugf("fzf output: %s", output)
+	log.Debugf("fzf output: %s", output)
 
 	category, id, err := parseSelectedOutput(output, fzfSeparator)
 	if err != nil {
@@ -89,11 +91,11 @@ func Run(ctx context.Context) error {
 	var errTmux error
 	switch category {
 	case categorySession:
-		logger.Infof("Attaching to tmux session with ID: %s", id)
+		log.Infof("Attaching to tmux session with ID: %s", id)
 		errTmux = tmux.SessionAttach(ctx, id)
 
 	case categoryDirectory:
-		logger.Infof("Opening directory with path: %s", id)
+		log.Infof("Opening directory with path: %s", id)
 		_, errTmux = tmux.SessionCreateOrAttach(ctx, tmux.BuildSessionNameFromPath(id), id)
 	}
 

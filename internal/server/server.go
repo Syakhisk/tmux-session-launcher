@@ -1,4 +1,4 @@
-package internal
+package server
 
 import (
 	"bufio"
@@ -88,14 +88,14 @@ func (s *Server) RegisterHandler(route ServerHandlerRoute, handler ServerHandler
 func (s *Server) handleConnection(ctx context.Context, conn net.Conn) {
 	defer conn.Close()
 
-	logger := logger.WithPrefix("launcher.handleConnection")
-	logger.Debugf("Handling connection from %s", conn.LocalAddr())
+	log := logger.WithPrefix("launcher.handleConnection")
+	log.Debugf("Handling connection from %s", conn.LocalAddr())
 
 	scanner := bufio.NewScanner(conn)
 
 	// Read route
 	if !scanner.Scan() {
-		logger.Error("failed to read route")
+		log.Error("failed to read route")
 		return
 	}
 	route := scanner.Text()
@@ -113,19 +113,19 @@ func (s *Server) handleConnection(ctx context.Context, conn net.Conn) {
 
 	handler, ok := s.handlers[ServerHandlerRoute(route)]
 	if !ok {
-		logger.Errorf("route not found: %s", route)
+		log.Errorf("route not found: %s", route)
 		return
 	}
 
 	if util.IsContextDone(ctx) {
-		logger.Error("failed to handle connection due to:", ctx.Err())
+		log.Error("failed to handle connection due to:", ctx.Err())
 		return
 	}
 
 	// Run handler and send response
 	response, err := handler(ctx, payload)
 	if err != nil {
-		logger.Errorf("handler error: %v", err)
+		log.Errorf("handler error: %v", err)
 		conn.Write([]byte("ERROR: " + err.Error() + "\n"))
 		return
 	}

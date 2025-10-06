@@ -11,7 +11,8 @@ var (
 )
 
 func handleExitCodeErr(err error) error {
-	if exitErr, ok := err.(*exec.ExitError); ok {
+	var exitErr *exec.ExitError
+	if errors.As(err, &exitErr) {
 		exitCode := exitErr.ExitCode()
 		if exitCode == 130 {
 			return ErrUserCancelled

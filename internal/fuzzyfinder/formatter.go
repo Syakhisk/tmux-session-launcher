@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"tmux-session-launcher/internal/dirs"
 	"tmux-session-launcher/internal/mode"
 	"tmux-session-launcher/internal/tmux"
+	"tmux-session-launcher/internal/workspace"
 	"tmux-session-launcher/pkg/logger"
 	"unicode/utf8"
 
@@ -53,7 +53,7 @@ func buildContent(ctx context.Context) (string, error) {
 	}
 
 	if currentMode == mode.ModeDirectory || currentMode == mode.ModeAll {
-		dirs := dirs.GetDirectories()
+		dirs := workspace.GetDirectories()
 
 		formattedDirs := formatEntryDirectoryAsRows(dirs, fzfSeparator)
 		output = append(output, formattedDirs...)
@@ -103,7 +103,7 @@ func formatEntryTmuxSessionsAsRows(sessions []tmux.Session, fzfSep string) [][]s
 	return rows
 }
 
-func formatEntryDirectoryAsRows(dirs []dirs.Directory, fzfSep string) [][]string {
+func formatEntryDirectoryAsRows(dirs []workspace.Directory, fzfSep string) [][]string {
 	rows := make([][]string, 0)
 
 	for _, d := range dirs {

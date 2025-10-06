@@ -11,7 +11,7 @@ const (
 )
 
 var mu sync.Mutex
-var modeCurrent Mode = ModeAll
+var modeCurrent = ModeAll
 var Modes = []Mode{ModeAll, ModeSession, ModeDirectory}
 
 func Get() Mode {

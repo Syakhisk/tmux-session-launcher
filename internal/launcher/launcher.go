@@ -29,11 +29,7 @@ func (l *Launcher) Handler(ctx context.Context, cmd *cli.Command) error {
 
 	defer l.Server.Stop()
 
-	if err := fuzzyfinder.Launcher(ctx); err != nil {
-		return err
-	}
-
-	return nil
+	return fuzzyfinder.Launcher(ctx)
 }
 
 func HandlerLauncer(ctx context.Context, cmd *cli.Command) error {

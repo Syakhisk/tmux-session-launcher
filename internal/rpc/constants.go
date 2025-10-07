@@ -1,4 +1,4 @@
-package constants
+package rpc
 
 const SockAddress = "/tmp/tmux-session-launcher.sock"
 

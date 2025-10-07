@@ -2,7 +2,7 @@ package launcher
 
 import (
 	"context"
-	"tmux-session-launcher/internal/constants"
+	"tmux-session-launcher/internal/rpc"
 	"tmux-session-launcher/internal/fuzzyfinder"
 	"tmux-session-launcher/internal/server"
 
@@ -33,7 +33,7 @@ func (l *Launcher) Handler(ctx context.Context, cmd *cli.Command) error {
 }
 
 func HandlerLauncer(ctx context.Context, cmd *cli.Command) error {
-	srv := server.NewServer(constants.SockAddress)
+	srv := server.NewServer(rpc.SockAddress)
 	lcr := NewLauncher(srv)
 
 	return lcr.Handler(ctx, cmd)

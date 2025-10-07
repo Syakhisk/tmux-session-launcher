@@ -4,7 +4,6 @@ import (
 	"context"
 	"net"
 	"strings"
-	"tmux-session-launcher/internal/constants"
 	"tmux-session-launcher/internal/rpc"
 
 	"emperror.dev/errors"
@@ -78,25 +77,25 @@ func (c *Client) CallWithResult(ctx context.Context, method string, params, resu
 
 func (c *Client) NextMode(ctx context.Context) (*rpc.ModeResponse, error) {
 	var result rpc.ModeResponse
-	err := c.CallWithResult(ctx, constants.MethodModeNext, rpc.EmptyParams{}, &result)
+	err := c.CallWithResult(ctx, rpc.MethodModeNext, rpc.EmptyParams{}, &result)
 	return &result, err
 }
 
 func (c *Client) PrevMode(ctx context.Context) (*rpc.ModeResponse, error) {
 	var result rpc.ModeResponse
-	err := c.CallWithResult(ctx, constants.MethodModePrev, rpc.EmptyParams{}, &result)
+	err := c.CallWithResult(ctx, rpc.MethodModePrev, rpc.EmptyParams{}, &result)
 	return &result, err
 }
 
 func (c *Client) GetMode(ctx context.Context) (*rpc.ModeResponse, error) {
 	var result rpc.ModeResponse
-	err := c.CallWithResult(ctx, constants.MethodModeGet, rpc.EmptyParams{}, &result)
+	err := c.CallWithResult(ctx, rpc.MethodModeGet, rpc.EmptyParams{}, &result)
 	return &result, err
 }
 
 func (c *Client) GetContent(ctx context.Context) (*rpc.ContentResponse, error) {
 	var result rpc.ContentResponse
-	err := c.CallWithResult(ctx, constants.MethodContentGet, rpc.EmptyParams{}, &result)
+	err := c.CallWithResult(ctx, rpc.MethodContentGet, rpc.EmptyParams{}, &result)
 	return &result, err
 }
 
@@ -111,5 +110,5 @@ func (c *Client) OpenIn(ctx context.Context, selection string) error {
 		Path:     strings.TrimSpace(split[1]),
 	}
 
-	return c.Call(ctx, constants.MethodLauncherOpenIn, params, nil)
+	return c.Call(ctx, rpc.MethodLauncherOpenIn, params, nil)
 }

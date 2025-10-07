@@ -2,9 +2,11 @@ package tmux
 
 import (
 	"context"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"tmux-session-launcher/pkg/util"
 
 	"emperror.dev/errors"
@@ -27,6 +29,11 @@ func IsRunning(ctx context.Context) bool {
 	return err == nil
 }
 
+// IsInSession checks if we're currently inside a
+func IsInSession() bool {
+	return os.Getenv("TMUX") != ""
+}
+
 func GetCurrentSession(ctx context.Context) (*Session, error) {
 	cmd := exec.CommandContext(
 		ctx,
@@ -41,7 +48,7 @@ func GetCurrentSession(ctx context.Context) (*Session, error) {
 			return nil, err
 		}
 
-		return nil, errors.WrapIf(err, "failed to get current tmux session")
+		return nil, errors.WrapIff(err, "failed to get current session: %s", output)
 	}
 
 	return parseSession(strings.TrimSpace(string(output)))
@@ -103,7 +110,7 @@ func SessionCreate(ctx context.Context, name, path string) (*Session, error) {
 			return nil, err
 		}
 
-		return nil, errors.WrapIf(err, "failed to create tmux session")
+		return nil, errors.WrapIff(err, "failed to create: %s", output)
 	}
 
 	cmd = exec.CommandContext(
@@ -120,13 +127,25 @@ func SessionCreate(ctx context.Context, name, path string) (*Session, error) {
 			return nil, err
 		}
 
-		return nil, errors.WrapIf(err, "failed to get created tmux session")
+		return nil, errors.WrapIff(err, "failed to get created: %s", output)
 	}
 
 	return parseSession(strings.TrimSpace(string(output)))
 }
 
 func SessionAttach(ctx context.Context, id string) error {
+
+	if !IsInSession() {
+		// Find tmux binary
+		tmuxPath, err := exec.LookPath("tmux")
+		if err != nil {
+			return err
+		}
+
+		// Replace current process with tmux
+		return syscall.Exec(tmuxPath, []string{"tmux", "attach-session", "-t", id}, os.Environ())
+	}
+
 	cmd := exec.CommandContext(
 		ctx,
 		"tmux",
@@ -140,7 +159,7 @@ func SessionAttach(ctx context.Context, id string) error {
 			return err
 		}
 
-		return errors.WrapIf(err, "failed to attach tmux session")
+		return errors.WrapIff(err, "failed to attach: %s", output)
 	}
 
 	return nil
@@ -150,13 +169,13 @@ func SessionCreateOrAttach(ctx context.Context, name, path string) (*Session, er
 	session, err := SessionCreate(ctx, name, path)
 	if err != nil {
 		if !errors.Is(err, ErrSessionExists) {
-			return nil, errors.WrapIf(err, "failed to create tmux session")
+			return nil, errors.WrapIff(err, "failed to create: %s", name)
 		}
 	}
 
 	err = SessionAttach(ctx, name)
 	if err != nil {
-		return nil, errors.WrapIf(err, "failed to attach tmux session")
+		return nil, errors.WrapIff(err, "failed to attach: %s", name)
 	}
 
 	return session, nil
@@ -177,7 +196,7 @@ func PaneCreate(ctx context.Context, path string) error {
 			return err
 		}
 
-		return errors.WrapIf(err, "failed to create tmux pane")
+		return errors.WrapIff(err, "failed to create pane: %s", output)
 	}
 
 	return nil
@@ -196,7 +215,7 @@ func WindowCreate(ctx context.Context, path string) error {
 		if err := handleTmuxError(string(output)); err != nil {
 			return err
 		}
-		return errors.WrapIf(err, "failed to create tmux window")
+		return errors.WrapIff(err, "failed to create window: %s", output)
 	}
 
 	return nil
@@ -216,7 +235,7 @@ func BuildSessionNameFromPath(path string) string {
 func parseSession(line string) (*Session, error) {
 	parts := strings.SplitN(line, "|", 3)
 	if len(parts) < 3 {
-		return nil, errors.New("unexpected output from tmux list-sessions")
+		return nil, errors.New("unexpected output from list-sessions")
 	}
 
 	return &Session{

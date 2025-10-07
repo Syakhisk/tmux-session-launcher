@@ -131,15 +131,7 @@ func GetContent(ctx context.Context) (string, error) {
 	return content, nil
 }
 
-func OpenIn(ctx context.Context, selection string) error {
-	split := strings.Split(selection, fzfSeparator)
-	if len(split) != 2 {
-		return fmt.Errorf("invalid selection format: %s", selection)
-	}
-
-	category := strings.TrimSpace(split[0])
-	path := strings.TrimSpace(split[1])
-
+func OpenIn(ctx context.Context, category string, path string) error {
 	if category == "session" {
 		return tmux.SessionAttach(ctx, path)
 	}

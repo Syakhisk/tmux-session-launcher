@@ -1,61 +1,81 @@
 package server
 
 import (
-	"bufio"
 	"context"
 	"net"
 	"os"
-	"strings"
 	"tmux-session-launcher/pkg/logger"
-	"tmux-session-launcher/pkg/util"
 
 	"emperror.dev/errors"
+	"github.com/creachadair/jrpc2"
+	"github.com/creachadair/jrpc2/channel"
+	"github.com/creachadair/jrpc2/handler"
 )
-
-type ServerHandlerFunc func(ctx context.Context, payload string) (string, error)
-type ServerHandlerRoute string
 
 type Server struct {
 	Address  string
-	handlers map[ServerHandlerRoute]ServerHandlerFunc
+	assigner handler.Map
 	listener net.Listener
 }
 
 func NewServer(address string) *Server {
 	return &Server{
-		Address: address,
+		Address:  address,
+		assigner: handler.Map{},
 	}
 }
 
 func (s *Server) Start(ctx context.Context) error {
-	logger := logger.WithPrefix("launcher.Start")
+	logger := logger.WithPrefix("server.Start")
 
-	logger.Infof("Starting socket listener at %s", s.Address)
+	logger.Infof("Starting JSON-RPC server at %s", s.Address)
 
-	var lstCfg net.ListenConfig
-	var err error
-	s.listener, err = lstCfg.Listen(ctx, "unix", s.Address)
+	// Remove existing socket file if it exists
+	if _, err := os.Stat(s.Address); err == nil {
+		logger.Warnf("Socket file %s already exists, removing it", s.Address)
+		if err := os.Remove(s.Address); err != nil {
+			return errors.Wrap(err, "failed to remove existing socket file")
+		}
+	}
+
+	listener, err := net.Listen("unix", s.Address)
 	if err != nil {
 		return errors.Wrap(err, "failed to start socket listener")
 	}
+	s.listener = listener
 
-	logger.Info("Socket listener started, waiting for connections...")
+	logger.Info("JSON-RPC server started, waiting for connections...")
 
-	// Main loop to accept connections
+	// Accept connections in a goroutine
 	go func() {
 		for {
-			conn, err := s.listener.Accept()
+			conn, err := listener.Accept()
 			if err != nil {
 				if errors.Is(err, net.ErrClosed) {
 					logger.Debugf("Stopping accept loop")
 					break
 				}
-
 				logger.Errorf("Failed to accept connection: %v", err)
 				continue
 			}
 
-			go s.handleConnection(ctx, conn)
+			// Handle each connection in a separate goroutine
+			go func(conn net.Conn) {
+				defer conn.Close()
+
+				// Create channel for the connection
+				ch := channel.Line(conn, conn)
+
+				// Create a new server instance for this connection
+				srv := jrpc2.NewServer(s.assigner, &jrpc2.ServerOptions{
+					Logger: func(text string) {
+						logger.Debugf("jrpc2: %s", text)
+					},
+				})
+
+				// Start serving and wait for completion
+				srv.Start(ch).Wait()
+			}(conn)
 		}
 	}()
 
@@ -64,73 +84,20 @@ func (s *Server) Start(ctx context.Context) error {
 
 func (s *Server) Stop() error {
 	var combErr error
+
 	if s.listener != nil {
 		err := s.listener.Close()
-		combErr = errors.Combine(err, errors.Wrap(err, "failed to close listener"))
+		combErr = errors.Combine(combErr, errors.Wrap(err, "failed to close listener"))
 	}
 
 	if _, err := os.Stat(s.Address); err == nil {
 		err := os.Remove(s.Address)
-		combErr = errors.Combine(err, errors.Wrap(err, "failed to remove socket file"))
+		combErr = errors.Combine(combErr, errors.Wrap(err, "failed to remove socket file"))
 	}
 
 	return combErr
 }
 
-func (s *Server) RegisterHandler(route ServerHandlerRoute, handler ServerHandlerFunc) {
-	if s.handlers == nil {
-		s.handlers = make(map[ServerHandlerRoute]ServerHandlerFunc)
-	}
-
-	s.handlers[route] = handler
-}
-
-func (s *Server) handleConnection(ctx context.Context, conn net.Conn) {
-	defer conn.Close()
-
-	log := logger.WithPrefix("launcher.handleConnection")
-	log.Debugf("Handling connection from %s", conn.LocalAddr())
-
-	scanner := bufio.NewScanner(conn)
-
-	// Read route
-	if !scanner.Scan() {
-		log.Error("failed to read route")
-		return
-	}
-	route := scanner.Text()
-
-	// Read multi-line payload until empty line
-	var payloadLines []string
-	for scanner.Scan() {
-		line := scanner.Text()
-		if line == "" { // empty line terminates payload
-			break
-		}
-		payloadLines = append(payloadLines, line)
-	}
-	payload := strings.Join(payloadLines, "\n")
-
-	handler, ok := s.handlers[ServerHandlerRoute(route)]
-	if !ok {
-		log.Errorf("route not found: %s", route)
-		return
-	}
-
-	if util.IsContextDone(ctx) {
-		log.Error("failed to handle connection due to:", ctx.Err())
-		return
-	}
-
-	// Run handler and send response
-	response, err := handler(ctx, payload)
-	if err != nil {
-		log.Errorf("handler error: %v", err)
-		conn.Write([]byte("ERROR: " + err.Error() + "\n"))
-		return
-	}
-
-	if response != "" {
-		conn.Write([]byte(response + "\n"))
-	}
+func (s *Server) RegisterHandler(method string, handler jrpc2.Handler) {
+	s.assigner[method] = handler
 }

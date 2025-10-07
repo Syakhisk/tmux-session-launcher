@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"tmux-session-launcher/internal/client"
-	"tmux-session-launcher/internal/constants"
 	"tmux-session-launcher/pkg/logger"
 
 	"emperror.dev/errors"
@@ -23,12 +22,12 @@ func NewAction(client *client.Client) *Action {
 func (a *Action) NextMode(ctx context.Context) error {
 	logger := logger.WithPrefix("action.NextMode")
 
-	res, err := a.client.Send(constants.RouteNextMode, "")
+	res, err := a.client.NextMode(ctx)
 	if err != nil {
 		return errors.Wrap(err, "failed to get next mode")
 	}
 
-	logger.Debugf("Raw response: %s", res)
+	logger.Debugf("Raw response: %s", res.Mode)
 
 	return nil
 }
@@ -36,47 +35,47 @@ func (a *Action) NextMode(ctx context.Context) error {
 func (a *Action) PrevMode(ctx context.Context) error {
 	log := logger.WithPrefix("action.PrevMode")
 
-	res, err := a.client.Send(constants.RoutePrevMode, "")
+	res, err := a.client.PrevMode(ctx)
 	if err != nil {
-		return errors.Wrap(err, "failed to get next mode")
+		return errors.Wrap(err, "failed to get previous mode")
 	}
 
-	log.Debugf("Raw response: %s", res)
+	log.Debugf("Raw response: %s", res.Mode)
 
 	return nil
 }
 
 func (a *Action) GetMode(ctx context.Context) error {
-	res, err := a.client.Send(constants.RouteGetMode, "")
+	res, err := a.client.GetMode(ctx)
 	if err != nil {
 		return errors.Wrap(err, "failed to get current mode")
 	}
 
-	fmt.Println("Current mode:", res)
+	fmt.Println(res.Mode)
 
 	return nil
 }
 
 func (a *Action) GetContent(ctx context.Context) error {
-	res, err := a.client.Send(constants.RouteGetContent, "")
+	res, err := a.client.GetContent(ctx)
 	if err != nil {
 		return errors.Wrap(err, "failed to get current content")
 	}
 
-	fmt.Println(res)
+	fmt.Println(res.Content)
 
 	return nil
 }
 
 func (a *Action) OpenIn(ctx context.Context, selectionString string) error {
-	log := logger.WithPrefix("action.PrevMode")
+	log := logger.WithPrefix("action.OpenIn")
 
-	res, err := a.client.Send(constants.RouteOpenIn, selectionString)
+	err := a.client.OpenIn(ctx, selectionString)
 	if err != nil {
 		return errors.Wrap(err, "failed to open in")
 	}
 
-	log.Debugf("Raw response: %s", res)
+	log.Debugf("Successfully opened selection: %s", selectionString)
 
 	return nil
 }

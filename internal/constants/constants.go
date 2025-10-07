@@ -2,10 +2,11 @@ package constants
 
 const SockAddress = "/tmp/tmux-session-launcher.sock"
 
+// JSON-RPC method names following RPC conventions
 const (
-	RouteNextMode   = "next"
-	RoutePrevMode   = "prev"
-	RouteGetMode    = "get-mode"
-	RouteGetContent = "get-content"
-	RouteOpenIn     = "open-in"
+	MethodModeNext       = "mode.next"
+	MethodModePrev       = "mode.previous"
+	MethodModeGet        = "mode.get"
+	MethodContentGet     = "content.get"
+	MethodLauncherOpenIn = "launcher.openIn"
 )

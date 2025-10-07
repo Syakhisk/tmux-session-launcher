@@ -7,7 +7,12 @@ require (
 	github.com/urfave/cli/v3 v3.4.1
 )
 
-require github.com/rodaine/table v1.3.0
+require (
+	github.com/creachadair/jrpc2 v1.3.3
+	github.com/rodaine/table v1.3.0
+)
+
+require github.com/creachadair/mds v0.25.4 // indirect
 
 require (
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d

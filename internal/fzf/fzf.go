@@ -89,13 +89,17 @@ func sendRequest(ctx context.Context, port int, body string) error {
 	}
 	defer resp.Body.Close()
 
-	// todo: remove
+	// TODO: remove
 	responseBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return errors.WrapIf(err, "failed to read response body")
 	}
 
-	log.Infof("Got response:\n%s", responseBody)
+	if len(responseBody) > 0 {
+		log.Infof("Response body: %.200s", responseBody)
+	} else {
+		log.Info("Response body is empty")
+	}
 
 	log.Debugf("Response status: %s", resp.Status)
 	return nil

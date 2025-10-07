@@ -7,6 +7,7 @@ import (
 	"syscall"
 	"time"
 	"tmux-session-launcher/internal/action"
+	"tmux-session-launcher/internal/config"
 	"tmux-session-launcher/internal/launcher"
 	"tmux-session-launcher/pkg/logger"
 
@@ -60,6 +61,57 @@ func main() {
 					{
 						Name:   "open-in",
 						Action: WithSignalHandling(action.HandlerOpenIn),
+					},
+				},
+			},
+			{
+				Name:    "config",
+				Aliases: []string{"cfg", "c"},
+				Commands: []*cli.Command{
+					{
+						Name:   "path",
+						Usage:  "Show the path to the configuration file",
+						Action: config.HandlerShowConfigPath,
+					},
+					{
+						Name:   "edit",
+						Usage:  "Edit the configuration file",
+						Action: config.HandlerEditConfig,
+					},
+					{
+						Name:   "init",
+						Usage:  "Initialize a default configuration file",
+						Action: config.HandlerInitConfig,
+					},
+					{
+						Name:   "validate",
+						Usage:  "Validate the configuration file",
+						Action: config.HandlerValidateConfig,
+					},
+					{
+						Name:   "list",
+						Usage:  "List all configured directories",
+						Action: config.HandlerListDirectories,
+					},
+					{
+						Name:    "add",
+						Aliases: []string{"a"},
+						Usage:   "Add a directory to the configuration (current dir if no path specified)",
+						Action:  config.HandlerAddDirectory,
+						Flags: []cli.Flag{
+							&cli.IntFlag{
+								Name:    "depth",
+								Aliases: []string{"d"},
+								Value:   0,
+								Usage:   "Depth of subdirectories to include (0 = no subdirectories)",
+							},
+						},
+					},
+					{
+						Name:    "remove",
+						Aliases: []string{"rm"},
+						Usage:   "Remove a directory from the configuration",
+						Action:  config.HandlerRemoveDirectory,
 					},
 				},
 			},

@@ -12,7 +12,10 @@ require (
 	github.com/rodaine/table v1.3.0
 )
 
-require github.com/creachadair/mds v0.25.4 // indirect
+require (
+	github.com/creachadair/mds v0.25.4 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
+)
 
 require (
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d

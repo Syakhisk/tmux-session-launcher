@@ -4,13 +4,10 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"tmux-session-launcher/internal/config"
+	"tmux-session-launcher/pkg/logger"
 	"tmux-session-launcher/pkg/util"
 )
-
-type DirectoryConfig struct {
-	Path  string
-	Depth int
-}
 
 type Directory struct {
 	FullPath          string
@@ -19,28 +16,24 @@ type Directory struct {
 	Label             string
 }
 
-// TODO: Make this configurable via a config file
-var dirsConfig = []DirectoryConfig{
-	{Path: "$HOME/.config", Depth: 1},
-	{Path: "$HOME/.local/share/nvim/lazy/LazyVim"},
-	{Path: "$HOME/Codes", Depth: 2},
-	{Path: "$HOME/Dotfiles", Depth: 1},
-	{Path: "$HOME/Dotfiles/packages/", Depth: 1},
-	{Path: "$HOME/GoVault"},
-	{Path: "$HOME/GoVault/Scratch"},
-	{Path: "$HOME/Work", Depth: 1},
-	{Path: "$HOME/Work/_projects"},
-}
-
-// TODO: make the walking depth based on common project root files
+// GetDirectories loads directory configuration from YAML file and returns all directories
 func GetDirectories() []Directory {
-	var result []Directory
-	for _, dir := range dirsConfig {
+	var allDirs []Directory
+
+	// Load configuration from YAML file
+	cfg, err := config.Load()
+	if err != nil {
+		logger.Errorf("Failed to load configuration: %v", err)
+		return allDirs
+	}
+
+	// Collect all directories first
+	for _, dir := range cfg.Directories {
 		expandedPath := os.ExpandEnv(dir.Path)
 		base := filepath.Base(expandedPath)
 		truncatedHome := util.TruncateHomePath(expandedPath)
 
-		result = append(result, Directory{
+		allDirs = append(allDirs, Directory{
 			FullPath:          expandedPath,
 			Parent:            base,
 			Label:             base,
@@ -48,11 +41,12 @@ func GetDirectories() []Directory {
 		})
 
 		if dir.Depth > 0 {
-			result = append(result, getSubDirectories(expandedPath, base, dir.Depth)...)
+			allDirs = append(allDirs, getSubDirectories(expandedPath, base, dir.Depth)...)
 		}
 	}
 
-	return result
+	// Deduplicate and return
+	return deduplicateDirectories(allDirs)
 }
 
 func getSubDirectories(basePath string, baseLabel string, depth int) []Directory {
@@ -79,6 +73,21 @@ func getSubDirectories(basePath string, baseLabel string, depth int) []Directory
 			if depth > 1 {
 				result = append(result, getSubDirectories(fullPath, baseLabel, depth-1)...)
 			}
+		}
+	}
+
+	return result
+}
+
+// deduplicateDirectories removes duplicate directories based on FullPath
+func deduplicateDirectories(dirs []Directory) []Directory {
+	seen := make(map[string]struct{})
+	var result []Directory
+
+	for _, dir := range dirs {
+		if _, exists := seen[dir.FullPath]; !exists {
+			seen[dir.FullPath] = struct{}{}
+			result = append(result, dir)
 		}
 	}
 

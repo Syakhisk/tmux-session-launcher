@@ -25,6 +25,7 @@ var dirsConfig = []DirectoryConfig{
 	{Path: "$HOME/.local/share/nvim/lazy/LazyVim"},
 	{Path: "$HOME/Codes", Depth: 2},
 	{Path: "$HOME/Dotfiles", Depth: 1},
+	{Path: "$HOME/Dotfiles/packages/", Depth: 1},
 	{Path: "$HOME/GoVault"},
 	{Path: "$HOME/GoVault/Scratch"},
 	{Path: "$HOME/Work", Depth: 1},

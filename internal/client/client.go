@@ -19,7 +19,7 @@ func NewClient(address string) *Client {
 	return &Client{address: address}
 }
 
-func (c *Client) Call(ctx context.Context, method string, params, result interface{}) error {
+func (c *Client) Call(ctx context.Context, method string, params, result any) error {
 	conn, err := net.Dial("unix", c.address)
 	if err != nil {
 		return errors.Wrap(err, "failed to connect to server")
@@ -42,7 +42,7 @@ func (c *Client) Call(ctx context.Context, method string, params, result interfa
 	return nil
 }
 
-func (c *Client) CallWithResult(ctx context.Context, method string, params, result interface{}) error {
+func (c *Client) CallWithResult(ctx context.Context, method string, params, result any) error {
 	conn, err := net.Dial("unix", c.address)
 	if err != nil {
 		return errors.Wrap(err, "failed to connect to server")
